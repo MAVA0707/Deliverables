@@ -1,6 +1,7 @@
 Week 2/.env
 Week 2/Lab 4/news-summarizer/.env
 .env
+.env.*
 __pycache__/
 *.pyc
 *.pyo
