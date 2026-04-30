@@ -1,0 +1,21 @@
+{
+  "products": [
+    {
+      "id": "P_NEG",
+      "name": "Negative Price Item",
+      "category": "Test",
+      "price": -5.0,
+      "features": []
+    },
+    {
+      "name": "Missing ID Item",
+      "category": "Test",
+      "price": 10.0
+    },
+    {
+      "id": "P_NOPRICE",
+      "name": "Missing Price Item",
+      "category": "Test"
+    }
+  ]
+}
