@@ -60,7 +60,7 @@ news-summarizer/
 - Python 3.10 or newer
 - API keys for:
   - [OpenAI](https://platform.openai.com) — paid, ~$0.15 / 1M input tokens (GPT-4o-mini)
-  - [Anthropic](https://console.anthropic.com) — paid, ~$3.00 / 1M input tokens (Claude 3.5 Sonnet)
+  - [Anthropic](https://console.anthropic.com) — paid, ~$3.00 / 1M input tokens (Claude Opus 4.7)
   - [NewsAPI](https://newsapi.org) — free tier: 100 requests/day
 
 ### 2. Clone the repository
