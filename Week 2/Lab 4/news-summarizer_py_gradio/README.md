@@ -17,7 +17,7 @@ For every article the pipeline runs three steps:
 
 1. **Fetch** — pulls top headlines from [NewsAPI](https://newsapi.org) by category
 2. **Summarise** — sends the article to **GPT-4o-mini** and gets a 2–3 sentence summary
-3. **Analyse** — passes the summary to **Claude 3.5 Sonnet** for sentiment analysis (positive / negative / neutral + confidence + emotional tone)
+3. **Analyse** — passes the summary to **Claude Opus 4.7** for sentiment analysis (positive / negative / neutral + confidence + emotional tone)
 
 Everything is accessible through a clean browser UI — no terminal required after startup.
 
@@ -210,7 +210,7 @@ PASSED  TestNewsSummarizer::test_process_articles_skips_failures
 | Step | Model | Avg input tokens | Avg output tokens | Cost per article |
 |---|---|---|---|---|
 | Summarisation | GPT-4o-mini | ~200 | ~70 | ~$0.000072 |
-| Sentiment | Claude 3.5 Sonnet | ~120 | ~60 | ~$0.001260 |
+| Sentiment | Claude Opus 4.7 | ~120 | ~60 | ~$0.001260 |
 | **Total per article** | | | | **~$0.00133** |
 
 ### Daily volume projections
@@ -226,7 +226,7 @@ All scenarios fit comfortably within the default `DAILY_BUDGET` of **$5.00**.
 
 ### Cost optimisation tips
 
-- **Swap sentiment model** — using `claude-haiku` instead of Claude 3.5 Sonnet cuts Anthropic costs by ~15×
+- **Swap sentiment model** — using `claude-haiku` instead of Claude Opus 4.7 cuts Anthropic costs by ~15×
 - **Truncate content** — the pipeline already caps article content at 500 characters; lowering this reduces input tokens further
 - **Cache results** — store summaries in a database and skip articles already processed
 - **Batch summarisation** — send multiple article snippets in one OpenAI call to reduce overhead
