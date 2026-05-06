@@ -1,0 +1,3 @@
+pip install langchain langchain-openai python-dotenv
+# add OPENAI_API_KEY to your .env file
+python normalobjects_langchain.py
