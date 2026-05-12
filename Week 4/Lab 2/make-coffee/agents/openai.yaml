@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make Coffee"
+  short_description: "Guide coffee brewing steps"
+  default_prompt: "Use this skill to guide brewing coffee drinks step by step, including ratios, grind size, timing, temperature, and adjustments based on the user’s equipment and beans."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Skill Authoring"
+  short_description: "Create and refine Codex skills"
+  default_prompt: "Use this skill to design, write, and update Codex skills, including SKILL.md frontmatter/body, trigger descriptions, and supporting metadata."
