@@ -1,0 +1,352 @@
+{
+  "name": "Example class",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -160,
+        -1280
+      ],
+      "id": "84efb404-b289-4187-a47e-d5a39233ee8a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5.4",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an AI news analyst writing for technically sophisticated readers who are skeptical of hype.\n\nYour task is to synthesize AI news from a curated list of outlets using the mindset of a critical technologist and media analyst.\n\nYour primary goals are:\n- Prioritize signal over hype.\n- Compare how different outlets frame the same story.\n- Identify omissions, narrative alignment, and incentive structures.\n- Separate marketing claims from demonstrated capability.\n- Explain what materially changed technically, economically, or politically.\n- Surface disagreements between technical, financial, policy, and mainstream reporting.\n\nFor each major story:\n\n1. Headline\n2. Core event summary (1 sentence)\n3. Cross-outlet comparison\n   - How did different outlets frame this story?\n   - Which facts were emphasized or ignored?\n   - Which outlets repeated company framing?\n   - Which outlets added technical or policy skepticism?\n   - Did coverage focus on product impact, markets, geopolitics, labor, or research?\n4. Critical analysis\n   - What is likely exaggerated?\n   - What assumptions are unstated?\n   - What evidence is missing?\n   - Who benefits from this framing?\n   - What incentives shape the narrative?\n5. Technical reality check\n   - Genuine breakthrough, incremental improvement, or packaging?\n   - What benchmarks or demos should be treated cautiously?\n   - What limitations remain?\n   - Is this research, a prototype, or a deployed system?\n6. Strategic significance\n   - Why does this matter long term?\n   - Does this increase platform lock-in, compute centralization, surveillance capacity, labor displacement, or geopolitical leverage?\n7. Confidence assessment\n   - High / Medium / Low confidence in reported claims\n\nSpecial instructions for outlet comparison:\n- Note when multiple outlets appear to derive reporting from the same press release or executive narrative.\n- Highlight contradictions between:\n  - technical reporting\n  - investor narratives\n  - regulatory discussions\n  - labor perspectives\n  - academic commentary\n- Identify stories receiving disproportionate coverage relative to actual importance.\n- Identify underreported stories with significant long-term implications.\n\nEditorial style:\n- Write like a mix of a senior engineer, investigative journalist, and systems thinker.\n- Avoid boosterism, futurist clichés, and anthropomorphic language.\n- Prefer concrete mechanisms over vague abstractions.\n- Treat corporate announcements as strategic communications, not neutral facts.\n- Call out benchmark gaming, selective demos, survivorship bias, and unverifiable claims.\n- Distinguish carefully between:\n  - research demos\n  - API releases\n  - production deployments\n  - speculative roadmap claims\n\nOutput format:\n- Group stories by theme.\n- Rank stories by actual strategic significance, not media attention.\n- Include a section called with one single line:\n  - \"Most Overhyped Story\"\n  - \"Most Underreported Story\"\n  - \"Corporate Framing vs Technical Reality\"\n  - \"What the Industry Wants Readers to Believe\"\n\n\nAssume the audience has graduate-level technical literacy.\n\n"
+            }
+          ]
+        },
+        "simplify": false,
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "low",
+            "allowedDomains": "news.ycombinator.com,\narstechnica.com,\nopenai.com,\nanthropic.com,\ndeepmind.google,\nhuggingface.co,\ndeeplearning.ai,\nimportai.substack.com,\nlatent.space,\nsimonwillison.net,\nbensbites.com,\nsemafor.com,\nartificialintelligence-news.com,\ntowardsai.net,\npaperswithcode.com,\nopenrouter.ai,\nartificialanalysis.ai,\nlesswrong.com,\nalignmentforum.org,\nblog.langchain.com"
+          }
+        },
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "name": "news_analysis",
+              "schema": "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"stories\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"headline\":                  { \"type\": \"string\" },\n          \"summary\":                   { \"type\": \"string\" },\n          \"crossOutletComparison\":     { \"type\": \"string\" },\n          \"criticalAnalysis\":          { \"type\": \"string\" },\n          \"technicalRealityCheck\":     { \"type\": \"string\" },\n          \"strategicSignificance\":     { \"type\": \"string\" },\n          \"confidenceAssessment\":      { \"type\": \"string\" }\n        },\n        \"required\": [\n          \"headline\",\n          \"summary\",\n          \"crossOutletComparison\",\n          \"criticalAnalysis\",\n          \"technicalRealityCheck\",\n          \"strategicSignificance\",\n          \"confidenceAssessment\"\n        ],\n        \"additionalProperties\": false\n      }\n    },\n    \"mostOverhypedStory\":                    { \"type\": \"string\" },\n    \"mostUnderreportedStory\":                { \"type\": \"string\" },\n    \"corporateFramingVsTechnicalReality\":    { \"type\": \"string\" },\n    \"whatTheIndustryWantsReadersTobelieve\":  { \"type\": \"string\" }\n  },\n  \"required\": [\n    \"stories\",\n    \"mostOverhypedStory\",\n    \"mostUnderreportedStory\",\n    \"corporateFramingVsTechnicalReality\",\n    \"whatTheIndustryWantsReadersTobelieve\"\n  ],\n  \"additionalProperties\": false\n}"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        64,
+        -1280
+      ],
+      "id": "2a0d77a3-ec95-44ea-affd-64cc750ac871",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "tpOmT9bU180HeaIk",
+          "name": "Isabella's Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "pageId": {
+          "__rl": true,
+          "value": "https://www.notion.so/AI-Reports-35ed8a17523a80029df3d38f89e5a0f7",
+          "mode": "url"
+        },
+        "title": "={{ \"AI News Analysis - \" + $now.toFormat(\"MMMM d, yyyy\") }}",
+        "simple": false,
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_1",
+              "textContent": "={{ $json.blocks[0].heading_1.rich_text[0].text.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        -1184
+      ],
+      "id": "8eba2d98-c7d6-45d2-97ff-4c8678455703",
+      "name": "Create a page",
+      "credentials": {
+        "notionOAuth2Api": {
+          "id": "jDyOSmS5ZFroCLTG",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nconst messageOutput = response.output.find(item => item.type === 'message');\nconst textContent = messageOutput.content[0].text;\nconst parsed = typeof textContent === 'string' ? JSON.parse(textContent) : textContent;\n\nconst blocks = [];\n\nif (parsed.stories && parsed.stories.length > 0) {\n  blocks.push({\n    type: 'heading_1',\n    heading_1: { rich_text: [{ type: 'text', text: { content: 'Stories' } }] }\n  });\n\n  for (const story of parsed.stories) {\n    blocks.push({\n      type: 'heading_2',\n      heading_2: { rich_text: [{ type: 'text', text: { content: story.headline } }] }\n    });\n\n    blocks.push({\n      type: 'paragraph',\n      paragraph: { rich_text: [{ type: 'text', text: { content: story.summary } }] }\n    });\n\n    const analysis = [\n      `Cross-Outlet Comparison: ${story.crossOutletComparison}`,\n      `Critical Analysis: ${story.criticalAnalysis}`,\n      `Technical Reality Check: ${story.technicalRealityCheck}`,\n      `Strategic Significance: ${story.strategicSignificance}`,\n      `Confidence: ${story.confidenceAssessment}`\n    ].join('\\n\\n');\n\n    // Notion API has a 2000 char limit per rich_text block — chunk if needed\n    const chunks = analysis.match(/.{1,2000}/gs) || [];\n    for (const chunk of chunks) {\n      blocks.push({\n        type: 'paragraph',\n        paragraph: { rich_text: [{ type: 'text', text: { content: chunk } }] }\n      });\n    }\n  }\n}\n\nblocks.push({\n  type: 'heading_1',\n  heading_1: { rich_text: [{ type: 'text', text: { content: 'Analysis Summary' } }] }\n});\n\nconst summaryFields = [\n  `Most Overhyped Story: ${parsed.mostOverhypedStory}`,\n  `Most Underreported Story: ${parsed.mostUnderreportedStory}`,\n  `Corporate Framing vs Technical Reality: ${parsed.corporateFramingVsTechnicalReality}`,\n  `What the Industry Wants Readers to Believe: ${parsed.whatTheIndustryWantsReadersTobelieve}`\n];\n\nfor (const field of summaryFields) {\n  const chunks = field.match(/.{1,2000}/gs) || [];\n  for (const chunk of chunks) {\n    blocks.push({\n      type: 'paragraph',\n      paragraph: { rich_text: [{ type: 'text', text: { content: chunk } }] }\n    });\n  }\n}\n\n// Extract all citations from the parsed stories\nconst citations = [];\n\nfor (const story of parsed.stories) {\n  const fields = [\n    story.summary,\n    story.crossOutletComparison,\n    story.criticalAnalysis,\n    story.technicalRealityCheck,\n    story.strategicSignificance,\n    story.confidenceAssessment\n  ];\n\n  for (const field of fields) {\n    const matches = [...field.matchAll(/\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\)]+)\\)/g)];\n    for (const match of matches) {\n      citations.push({\n        headline: story.headline,\n        linkText: match[1],\n        url: match[2]\n      });\n    }\n  }\n}\n\n// Deduplicate citations by URL\nconst seen = new Set();\nconst uniqueCitations = citations.filter(c => {\n  if (seen.has(c.url)) return false;\n  seen.add(c.url);\n  return true;\n});\n\nreturn [{ json: { blocks, citations: uniqueCitations } }];"
+      },
+      "id": "812926d6-d592-45b3-a18c-267812eaac25",
+      "name": "Format Blocks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -1280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/blocks/{{ $('Create a page').item.json.id }}/children",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ children: $('Format Blocks').item.json.blocks }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        864,
+        -1184
+      ],
+      "id": "49806560-43f4-41e8-ad37-838de8942f4e",
+      "name": "HTTP Request",
+      "credentials": {
+        "notionOAuth2Api": {
+          "id": "UT5Jdv0jVE013bNs",
+          "name": "Notion OAuth2 API"
+        },
+        "httpHeaderAuth": {
+          "id": "bDtApd48XowUKTRv",
+          "name": "Notion Report AI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1n46xRHmww2LkGwWVesp_Wu4Z8KV-p2KL-MyJ7oXbydQ"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1n46xRHmww2LkGwWVesp_Wu4Z8KV-p2KL-MyJ7oXbydQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toFormat(\"yyyy-MM-dd\") }}",
+            "Source": "={{ $json.linkText }}",
+            "Report Link": "= {{ $json.url }}",
+            "Headline": "= {{ $json.headline }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Headline",
+              "displayName": "Headline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Report Link",
+              "displayName": "Report Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notion Article",
+              "displayName": "Notion Article",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        864,
+        -1376
+      ],
+      "id": "a6b0d54e-479e-4761-aee6-ccf3e5389186",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "WArIFcTNMYjCbu4G",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=citations",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -1376
+      ],
+      "id": "3f6c18c4-c7d6-4b3d-a9b7-5625267570a9",
+      "name": "Split Out"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Format Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Blocks": {
+      "main": [
+        [
+          {
+            "node": "Create a page",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a page": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3df79812-eb79-4726-8ccd-30f50c8f7ed5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bf1fe80664532b9df21296056a9fad00ab0cb832405f179f329c915d416eed0f"
+  },
+  "id": "svUPQ3c5bOxp6bxI",
+  "tags": []
+}
