@@ -1,0 +1,468 @@
+{
+  "name": "Telegram to Notion Blogposts",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "2392c41f-47e1-41ae-aca4-0cd0c13b279f",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        128
+      ],
+      "webhookId": "20023c4f-30e8-49a1-9bd8-f929cd7db607",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      },
+      "notes": "Listens for incoming messages. Send your blog idea as plain text to the bot."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-topic",
+              "name": "Topic",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "field-sender",
+              "name": "Requested by",
+              "value": "={{ $json.message.from.username || $json.message.from.first_name || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "field-chat-id",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "field-timestamp",
+              "name": "Created",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "83036205-d021-4573-8e29-099e80e30b1a",
+      "name": "Set – Normalize Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        128
+      ],
+      "notes": "Flatten the Telegram payload into clean top-level fields used downstream."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-not-empty",
+              "leftValue": "={{ $json.Topic }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "cond-min-length",
+              "leftValue": "={{ $json.Topic.length }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8e65f13f-a1a6-49a5-82e5-a338269ecc09",
+      "name": "IF – Valid Idea?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        128
+      ],
+      "notes": "Guard: only proceed if the message is non-empty and at least 5 characters. Drops bot noise."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Set – Normalize Fields').item.json.chat_id }}",
+        "text": "Got it! Generating your blog post and saving it to Notion Blogpost Pipeline.\n\n_This will take a few seconds..._",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "c6d0b3da-d624-4b35-9940-c3cf4d3a989a",
+      "name": "Telegram – Acknowledge",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        16
+      ],
+      "webhookId": "3d84bd6a-7d95-40b7-a385-1eb4df34d124",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      },
+      "notes": "Sends an immediate acknowledgement so the user knows the pipeline started."
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a senior content strategist. Produce a concise content brief as plain text. Use this exact structure:\n\nANGLE:\nHOOK:\nCORE INSIGHT:\nMARKET RELEVANCE:\nPRODUCT REFERENCE:\nSTYLE DIRECTION:\nCALL TO ACTION:",
+              "role": "system"
+            },
+            {
+              "content": "=Create a content brief for a blog post.\n\nTOPIC: {{ $('Set – Normalize Fields').item.json.Topic }}\nAUDIENCE: fitness enthusiasts\nCHANNEL: blog\n"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 600,
+          "temperature": 0.5
+        }
+      },
+      "id": "938f0899-1f71-44b6-9066-02147c4b87ba",
+      "name": "OpenAI – Brief (Generate Brief)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [
+        448,
+        16
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YdSTLWaaPSLg8lQ7",
+          "name": "OpenAI account"
+        }
+      },
+      "notes": "STEP 3 – BRIEF: Generates a structured ANGLE/HOOK/CORE INSIGHT brief before writing the post."
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are an expert blog writer for a fitness technology brand. Your writing is human, precise, grounded in real context, and non-generic. Write like a real person. Avoid AI-sounding phrasing. Never use the em dash character. Every sentence must add value.",
+              "role": "system"
+            },
+            {
+              "content": "=Write a blog post about the following topic.\n\nTOPIC: {{ $('Set – Normalize Fields').item.json.Topic }}\n\nCONTENT BRIEF:\n{{ $('OpenAI – Brief (Generate Brief)').item.json.message.content }}\n\nINSTRUCTIONS:\n- 200 to 280 words\n- Include a compelling title on the first line (prefix with # )\n- Lead with a human insight\n- 3-4 short paragraphs\n- End with a clear takeaway or call to action\n- Avoid generic phrasing and unsupported claims\n- Write in full sentences only\n\nOutput only the blog post."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 900,
+          "temperature": 0.75
+        }
+      },
+      "id": "b26a2f36-384c-41b0-97b2-59af3046892a",
+      "name": "OpenAI – Publish (Generate Blog Post)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [
+        848,
+        16
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YdSTLWaaPSLg8lQ7",
+          "name": "OpenAI account"
+        }
+      },
+      "notes": "STEP 4 – PUBLISH: Uses the brief to generate the final 200-280 word blog post."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-blog-body",
+              "name": "Content",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "field-blog-title",
+              "name": "Title",
+              "value": "={{ $json.message.content.split('\\n')[0].replace(/^#+\\s*/, '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "d4d904ba-4566-4b49-8c39-772713390f70",
+              "name": "Topic",
+              "value": "={{ $('IF – Valid Idea?').item.json.Topic }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7652a5e1-7a9c-4fcc-963c-4d2e91f50fea",
+      "name": "Set – Parse Blog Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        16
+      ],
+      "notes": "Extracts the title (first # line) and full body from the blog post for clean Notion mapping."
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "35f641dc48758087a744fcb84e915175",
+          "mode": "id"
+        },
+        "title": "={{ $json.Title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Content|rich_text",
+              "textContent": "={{ $json.Content }}"
+            },
+            {
+              "key": "Topic|rich_text",
+              "textContent": "={{ $json.Topic }}"
+            },
+            {
+              "key": "Requested by|rich_text",
+              "textContent": "={{ $('Telegram – Acknowledge').item.json.result.chat.first_name }}"
+            },
+            {
+              "key": "Created|date",
+              "includeTime": false,
+              "date": "={{ $('Set – Normalize Fields').item.json.Created }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Draft"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b2fb9ac-aac5-46dd-b003-45a13deac693",
+      "name": "Notion – Create Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1552,
+        16
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      },
+      "notes": "STEP 5 – PUBLISH TO NOTION: Creates a new page with blog content + brief appended below a divider."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Set – Normalize Fields').item.json.chat_id }}",
+        "text": "✅ *Blog post created in Notion!*\n\n\n",
+        "additionalFields": {
+          "disable_web_page_preview": true,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "0b27050e-8c5b-43a1-b87d-31a0e7d00f4b",
+      "name": "Telegram – Confirm with Link",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1824,
+        16
+      ],
+      "webhookId": "6f8239f3-ddca-4779-aaa2-93685d9614c1",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      },
+      "notes": "Sends the Notion page URL back to the user so they can open the draft immediately."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Set – Normalize Fields').item.json.chat_id }}",
+        "text": "⚠️ Your message was too short to generate a blog post. Please send a meaningful topic, for example:\n\n_\"How sleep tracking can improve marathon recovery\"_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "e7d3d57a-c107-4450-a5cf-b948624ebc86",
+      "name": "Telegram – Reject Short Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        240
+      ],
+      "webhookId": "b28a68ec-2dad-4f3e-8768-8a1d69fb4101",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      },
+      "notes": "Handles the false branch of the IF guard — tells the user their message was too short."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set – Normalize Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set – Normalize Fields": {
+      "main": [
+        [
+          {
+            "node": "IF – Valid Idea?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF – Valid Idea?": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Acknowledge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram – Reject Short Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram – Acknowledge": {
+      "main": [
+        [
+          {
+            "node": "OpenAI – Brief (Generate Brief)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI – Brief (Generate Brief)": {
+      "main": [
+        [
+          {
+            "node": "OpenAI – Publish (Generate Blog Post)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI – Publish (Generate Blog Post)": {
+      "main": [
+        [
+          {
+            "node": "Set – Parse Blog Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set – Parse Blog Content": {
+      "main": [
+        [
+          {
+            "node": "Notion – Create Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion – Create Page": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Confirm with Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a7af0b0f-731b-4e07-8af7-17bb45b28730",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "iXp6e198iRZpxzE3",
+  "tags": []
+}
