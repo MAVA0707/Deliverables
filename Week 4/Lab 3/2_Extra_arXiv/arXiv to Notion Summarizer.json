@@ -1,0 +1,270 @@
+{
+  "name": "arXiv to Notion Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "arxiv-summarizer",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "4982d109-4479-43f6-a0d0-c2b725e8412c",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "arxiv-summarizer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const url = $input.item.json.body.arxiv_url;\n\nif (!url) {\n  throw new Error('Missing arxiv_url in request body');\n}\n\nconst match = url.match(/abs\\/([\\d.v]+)/);\n\nif (!match) {\n  throw new Error('Could not extract arXiv ID from URL: ' + url);\n}\n\nreturn {\n  paper_id: match[1],\n  arxiv_url: url\n};"
+      },
+      "id": "e1327074-80d1-4c09-a0e2-f879c02a9951",
+      "name": "Extract Paper ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://export.arxiv.org/api/query",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id_list",
+              "value": "={{ $json.paper_id }}"
+            },
+            {
+              "name": "start",
+              "value": "0"
+            },
+            {
+              "name": "max_results",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "306e175b-6256-42d9-bc3e-17971d3b011c",
+      "name": "Fetch from arXiv API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const xml = $input.item.json.data;\n\nconst getTag = (tag) => {\n  const re = new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\\\/${tag}>`, 'i');\n  const m = xml.match(re);\n  return m ? m[1].trim() : '';\n};\n\nconst getAllTags = (tag) => {\n  const re = new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\\\/${tag}>`, 'gi');\n  const matches = [];\n  let m;\n  while ((m = re.exec(xml)) !== null) matches.push(m[1].trim());\n  return matches;\n};\n\nconst authorMatches = getAllTags('name');\nconst category = xml.match(/<arxiv:primary_category[^>]+term=\"([^\"]+)\"/)?.[1] || '';\n\nconst entry = xml.match(/<entry>([\\s\\S]*?)<\\/entry>/i)?.[1] || '';\nconst title = entry.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)?.[1]\n  ?.replace(/\\n/g, ' ').trim() || '';\nconst abstract = getTag('summary').replace(/\\n/g, ' ').trim();\n\nif (!title || !abstract) {\n  throw new Error('Could not parse arXiv XML — check paper ID is valid');\n}\n\nreturn {\n  paper_id: $('Extract Paper ID').item.json.paper_id,\n  arxiv_url: $('Extract Paper ID').item.json.arxiv_url,\n  title: title,\n  authors: authorMatches.join(', '),\n  abstract: abstract,\n  category: category\n};"
+      },
+      "id": "11a0dd8b-de35-4802-a833-8bfda1824652",
+      "name": "Parse XML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "35f641dc48758031be2aee59c4a655ea",
+          "mode": "id"
+        },
+        "title": "={{ $('Parse XML').item.json.title }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Authors|rich_text",
+              "textContent": "={{ $('Parse XML').item.json.authors }}"
+            },
+            {
+              "key": "arXiv URL|url",
+              "urlValue": "={{ $('Parse XML').item.json.arxiv_url }}"
+            },
+            {
+              "key": "Category|select",
+              "selectValue": "={{ $('Parse XML').item.json.category }}"
+            },
+            {
+              "key": "Summary|rich_text",
+              "textContent": "={{ $('Message a model').item.json.output[0].content[0].text }}"
+            },
+            {
+              "key": "Date Added|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Read ?|checkbox"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2d0020e0-0249-4f68-979d-75887d982d0b",
+      "name": "Create Notion Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        0
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Paper added to Notion successfully\",\n  \"title\": \"{{ $('Parse XML').item.json.title }}\",\n  \"notion_url\": \"{{ $json.url }}\"\n}",
+        "options": {}
+      },
+      "id": "e6a1ed0b-bc5b-4520-9b26-95f9e8115785",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1328,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a research assistant. Summarize research papers in 2-3 sentences for non-experts.\""
+            },
+            {
+              "content": "=Summarize this research paper abstract: {{ $json.abstract }}\n\nTemperature: 0.7\nMax Tokens:150"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        0
+      ],
+      "id": "8187960b-e8eb-4003-97e7-44dc3a282959",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "YdSTLWaaPSLg8lQ7",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Paper ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Paper ID": {
+      "main": [
+        [
+          {
+            "node": "Fetch from arXiv API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch from arXiv API": {
+      "main": [
+        [
+          {
+            "node": "Parse XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notion Page": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse XML": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Create Notion Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "90186ec9-7b44-4646-81ef-583a5c4d1906",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "byEnlf71c4x0VWlu",
+  "tags": []
+}
