@@ -1,0 +1,535 @@
+{
+  "name": "FitByte Lead Qualification Agent v2",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "node_telegram_trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [260, 300],
+      "webhookId": "fitbyte-bot-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// ============================================================\n// FITBYTE LEAD QUALIFICATION BOT — COMPLETE CONVERSATION LOGIC\n// ============================================================\n// All session state is stored in workflow static data.\n// Each Telegram message triggers this node once.\n// This node figures out where the user is, responds, and saves state.\n// ============================================================\n\nconst msg = $input.item.json.message;\nif (!msg || !msg.text) {\n  // Ignore non-text messages silently\n  return { action: 'ignore' };\n}\n\nconst chatId = String(msg.chat.id);\nconst userId = String(msg.from.id);\nconst text = msg.text.trim();\nconst firstName = msg.from.first_name || 'there';\n\n// ------ SESSION STORAGE ------\n// Use workflow static data as a simple key-value store.\n// Key format: session_{userId}\n// Value: JSON string of session object\nconst store = $getWorkflowStaticData('global');\nconst sessionKey = 'session_' + userId;\n\nlet session;\ntry {\n  const raw = store[sessionKey];\n  session = raw ? JSON.parse(raw) : null;\n} catch(e) {\n  session = null;\n}\n\n// If no session or user typed /start, reset\nif (!session || text === '/start') {\n  session = {\n    step: 1,\n    chatId: chatId,\n    userId: userId,\n    firstName: firstName,\n    answers: []\n  };\n  store[sessionKey] = JSON.stringify(session);\n\n  return {\n    action: 'send_message',\n    chatId: chatId,\n    text: 'Hi ' + firstName + '! 👋 I\\'m FitByte\\'s fitness advisor.\\n\\nI\\'ll match you with the perfect gear in 3 quick questions!\\n\\n*Question 1 of 3* 🎯\\nWhat is your main fitness goal?\\n\\n① Lose weight\\n② Build muscle\\n③ Track performance\\n④ General wellness',\n    parseMode: 'Markdown',\n    nextStep: null\n  };\n}\n\n// ------ STEP MACHINE ------\nconst step = session.step;\n\n// STEP 1: Waiting for answer to Q1\nif (step === 1) {\n  session.answers.push({ q: 'Fitness goal', a: text });\n  session.step = 2;\n  store[sessionKey] = JSON.stringify(session);\n\n  return {\n    action: 'send_message',\n    chatId: chatId,\n    text: '*Question 2 of 3* ⌚\\nHow do you prefer to track your workouts?\\n\\n① On my wrist (smartwatch style)\\n② Minimal & discreet (ring)\\n③ Chest strap for maximum precision',\n    parseMode: 'Markdown',\n    nextStep: null\n  };\n}\n\n// STEP 2: Waiting for answer to Q2\nif (step === 2) {\n  session.answers.push({ q: 'Tracking preference', a: text });\n  session.step = 3;\n  store[sessionKey] = JSON.stringify(session);\n\n  return {\n    action: 'send_message',\n    chatId: chatId,\n    text: '*Question 3 of 3* 🏋️\\nHow seriously do you train?\\n\\n① Casual (1–2x per week)\\n② Regular (3–4x per week)\\n③ Athlete (5+ per week or competition)',\n    parseMode: 'Markdown',\n    nextStep: null\n  };\n}\n\n// STEP 3: Waiting for answer to Q3\nif (step === 3) {\n  session.answers.push({ q: 'Training intensity', a: text });\n  session.step = 4;\n  store[sessionKey] = JSON.stringify(session);\n\n  return {\n    action: 'send_message',\n    chatId: chatId,\n    text: 'Almost there! 😊\\n\\nWhat is your *name*?',\n    parseMode: 'Markdown',\n    nextStep: null\n  };\n}\n\n// STEP 4: Waiting for name\nif (step === 4) {\n  session.name = text;\n  session.step = 5;\n  store[sessionKey] = JSON.stringify(session);\n\n  return {\n    action: 'send_message',\n    chatId: chatId,\n    text: 'And your *email address* so our team can reach you? 📧',\n    parseMode: 'Markdown',\n    nextStep: null\n  };\n}\n\n// STEP 5: Waiting for email\nif (step === 5) {\n  const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n  if (!emailRegex.test(text)) {\n    // Invalid email — stay on step 5, ask again\n    return {\n      action: 'send_message',\n      chatId: chatId,\n      text: 'Hmm, that doesn\\'t look like a valid email. 🤔\\nCould you try again? (e.g. name@example.com)',\n      parseMode: 'Markdown',\n      nextStep: null\n    };\n  }\n\n  session.email = text;\n  session.step = 6;\n  store[sessionKey] = JSON.stringify(session);\n\n  // Return data for OpenAI classification + Notion routing\n  return {\n    action: 'classify',\n    chatId: chatId,\n    userId: userId,\n    name: session.name,\n    email: session.email,\n    answer1: session.answers[0] ? session.answers[0].a : '',\n    answer2: session.answers[1] ? session.answers[1].a : '',\n    answer3: session.answers[2] ? session.answers[2].a : '',\n    sessionKey: sessionKey\n  };\n}\n\n// STEP 6+: Already completed\nreturn {\n  action: 'send_message',\n  chatId: chatId,\n  text: 'You have already completed the quiz! 🎉\\nType /start to begin again.',\n  parseMode: 'Markdown',\n  nextStep: null\n};\n"
+      },
+      "id": "node_conversation_logic",
+      "name": "Conversation Logic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond_classify",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "classify",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node_route_action",
+      "name": "Classify or Send?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "={{ $json.parseMode }}"
+        }
+      },
+      "id": "node_send_reply",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [920, 460],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a fitness product classifier for FitByte. Given three answers from a lead, classify them into exactly one product.\n\nProducts:\n- WATCH: Wants wrist-based tracking. Prefers performance tracking or weight loss. Trains regularly or seriously.\n- RING: Wants minimal, discreet tracking. General wellness or casual goals. Casual to regular training frequency.\n- CHESTBAND: Wants maximum precision. Athlete-level training (5+ per week or competition). Performance-focused.\n\nRespond with ONLY one word: WATCH, RING, or CHESTBAND. No punctuation, no explanation."
+            },
+            {
+              "role": "user",
+              "content": "=Q1 - Fitness goal: {{ $json.answer1 }}\nQ2 - Tracking preference: {{ $json.answer2 }}\nQ3 - Training intensity: {{ $json.answer3 }}\n\nClassify:"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "node_openai_classify",
+      "name": "OpenAI Classify",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [920, 160],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CRED_ID",
+          "name": "FitByte OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse OpenAI response and merge with lead data from previous node\nconst rawClassification = ($json.message?.content || '').trim().toUpperCase().replace(/[^A-Z]/g, '');\nconst valid = ['WATCH', 'RING', 'CHESTBAND'];\nconst product = valid.includes(rawClassification) ? rawClassification : 'WATCH';\n\n// Get lead data from the Classify Or Send node (2 steps back)\nconst leadData = $('Classify or Send?').item.json;\n\nreturn {\n  product,\n  chatId: leadData.chatId,\n  userId: leadData.userId,\n  name: leadData.name,\n  email: leadData.email,\n  answer1: leadData.answer1,\n  answer2: leadData.answer2,\n  answer3: leadData.answer3,\n  sessionKey: leadData.sessionKey,\n  timestamp: new Date().toISOString(),\n  source: 'Telegram — FitByte Social Campaign'\n};\n"
+      },
+      "id": "node_parse_product",
+      "name": "Parse Product",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond_watch",
+              "leftValue": "={{ $json.product }}",
+              "rightValue": "WATCH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond_ring",
+              "leftValue": "={{ $json.product }}",
+              "rightValue": "RING",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond_chestband",
+              "leftValue": "={{ $json.product }}",
+              "rightValue": "CHESTBAND",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "node_route_product",
+      "name": "Route by Product",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1360, 160]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_WATCH_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Fitness Goal|rich_text",
+              "textContent": "={{ $json.answer1 }}"
+            },
+            {
+              "key": "Tracking Preference|rich_text",
+              "textContent": "={{ $json.answer2 }}"
+            },
+            {
+              "key": "Training Intensity|rich_text",
+              "textContent": "={{ $json.answer3 }}"
+            },
+            {
+              "key": "Product Match|select",
+              "selectValue": "Fitness Watch"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "={{ $json.source }}"
+            },
+            {
+              "key": "Submitted At|date",
+              "date": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "node_notion_watch",
+      "name": "Notion — Watch Team",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1580, 60],
+      "credentials": {
+        "notionApi": {
+          "id": "YOUR_NOTION_CRED_ID",
+          "name": "FitByte Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_RING_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Fitness Goal|rich_text",
+              "textContent": "={{ $json.answer1 }}"
+            },
+            {
+              "key": "Tracking Preference|rich_text",
+              "textContent": "={{ $json.answer2 }}"
+            },
+            {
+              "key": "Training Intensity|rich_text",
+              "textContent": "={{ $json.answer3 }}"
+            },
+            {
+              "key": "Product Match|select",
+              "selectValue": "Fitness Ring"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "={{ $json.source }}"
+            },
+            {
+              "key": "Submitted At|date",
+              "date": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "node_notion_ring",
+      "name": "Notion — Ring Team",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1580, 180],
+      "credentials": {
+        "notionApi": {
+          "id": "YOUR_NOTION_CRED_ID",
+          "name": "FitByte Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_CHESTBAND_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.name }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Fitness Goal|rich_text",
+              "textContent": "={{ $json.answer1 }}"
+            },
+            {
+              "key": "Tracking Preference|rich_text",
+              "textContent": "={{ $json.answer2 }}"
+            },
+            {
+              "key": "Training Intensity|rich_text",
+              "textContent": "={{ $json.answer3 }}"
+            },
+            {
+              "key": "Product Match|select",
+              "selectValue": "Chestband Pro"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "={{ $json.source }}"
+            },
+            {
+              "key": "Submitted At|date",
+              "date": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "node_notion_chestband",
+      "name": "Notion — Chestband Team",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1580, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "YOUR_NOTION_CRED_ID",
+          "name": "FitByte Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Clear session and prepare confirmation message\nconst store = $getWorkflowStaticData('global');\nconst sessionKey = $('Parse Product').item.json.sessionKey;\nif (sessionKey && store[sessionKey]) {\n  delete store[sessionKey];\n}\n\nconst lead = $('Parse Product').item.json;\nreturn {\n  chatId: lead.chatId,\n  name: lead.name,\n  email: lead.email,\n  product: lead.product\n};\n"
+      },
+      "id": "node_clear_session",
+      "name": "Clear Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 180]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "=🎉 You're all set, *{{ $json.name }}*!\n\nA FitByte specialist will be in touch at *{{ $json.email }}* very soon.\n\nGet ready to level up your fitness! 💪\n\n_— The FitByte Team_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_confirm_user",
+      "name": "Confirm to User",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2020, 180],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CRED_ID",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Conversation Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Logic": {
+      "main": [
+        [
+          {
+            "node": "Classify or Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify or Send?": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Classify",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Classify": {
+      "main": [
+        [
+          {
+            "node": "Parse Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Product": {
+      "main": [
+        [
+          {
+            "node": "Route by Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Product": {
+      "main": [
+        [
+          {
+            "node": "Notion — Watch Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion — Ring Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notion — Chestband Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion — Watch Team": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion — Ring Team": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion — Chestband Team": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Session": {
+      "main": [
+        [
+          {
+            "node": "Confirm to User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2026-05-14T00:00:00.000Z",
+      "updatedAt": "2026-05-14T00:00:00.000Z",
+      "id": "fitbyte-lead-qual",
+      "name": "FitByte"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "n8nVersion": "1.90.0"
+  },
+  "id": "fitbyte-lead-qualification-agent-v2",
+  "versionId": "v2.0.0"
+}

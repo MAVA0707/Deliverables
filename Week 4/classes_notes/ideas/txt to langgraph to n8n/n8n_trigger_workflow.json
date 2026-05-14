@@ -1,0 +1,154 @@
+{
+  "name": "Meeting Summary Agent — Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "/transcripts",
+        "events": ["add"],
+        "options": { "includeHidden": false }
+      },
+      "id": "node_watch_folder",
+      "name": "Watch Transcripts Folder",
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond_ext",
+              "leftValue": "={{ $json.path.endsWith('.txt') || $json.path.endsWith('.md') }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node_check_ext",
+      "name": "Is .txt or .md?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.path }}",
+        "options": {}
+      },
+      "id": "node_read_file",
+      "name": "Read Transcript File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [680, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/process-transcript",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "transcript",
+              "value": "={{ $json.data.toString() }}"
+            },
+            {
+              "name": "filename",
+              "value": "={{ $('Watch Transcripts Folder').item.json.path.split('/').pop() }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "node_call_agent",
+      "name": "Call Meeting Summary Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond_ok",
+              "leftValue": "={{ $json.notion_page_url !== '' && $json.notion_page_url !== undefined }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node_check_ok",
+      "name": "Notion Page Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 220]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const fs   = require('fs');\nconst path = require('path');\nconst src  = $('Watch Transcripts Folder').item.json.path;\nconst dest = path.join('/transcripts/processed', path.basename(src));\ntry {\n  if (!fs.existsSync('/transcripts/processed')) fs.mkdirSync('/transcripts/processed', { recursive: true });\n  fs.renameSync(src, dest);\n  return { archived: true, dest };\n} catch(e) {\n  return { archived: false, error: e.message };\n}\n"
+      },
+      "id": "node_archive",
+      "name": "Archive Transcript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 140]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $('Call Meeting Summary Agent').item.json;\nconst f = $('Watch Transcripts Folder').item.json.path;\nconsole.log(`[Meeting Summary] OK: ${f}`);\nconsole.log(`  ${r.meeting_title} (${r.meeting_date}) → ${r.notion_page_url}`);\nreturn { file: f, meeting_title: r.meeting_title, notion_page_url: r.notion_page_url,\n         telegram_sent: r.telegram_sent, processed_at: new Date().toISOString() };\n"
+      },
+      "id": "node_log",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 280]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TEAM_LEAD_CHAT_ID",
+        "text": "=❌ *Meeting Summary Agent failed*\n\nFile: `{{ $('Watch Transcripts Folder').item.json.path.split('/').pop() }}`\nErrors: {{ $('Call Meeting Summary Agent').item.json.errors?.join(', ') || 'unknown error' }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "node_error_alert",
+      "name": "Alert on Failure",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1340, 420],
+      "credentials": {
+        "telegramApi": { "id": "YOUR_TELEGRAM_CRED_ID", "name": "Meeting Agent Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Watch Transcripts Folder":    { "main": [[{ "node": "Is .txt or .md?",              "type": "main", "index": 0 }]] },
+    "Is .txt or .md?":             { "main": [[{ "node": "Read Transcript File",          "type": "main", "index": 0 }], []] },
+    "Read Transcript File":        { "main": [[{ "node": "Call Meeting Summary Agent",    "type": "main", "index": 0 }]] },
+    "Call Meeting Summary Agent":  { "main": [[{ "node": "Notion Page Created?",          "type": "main", "index": 0 }]] },
+    "Notion Page Created?": {
+      "main": [
+        [{ "node": "Archive Transcript", "type": "main", "index": 0 }, { "node": "Log Success", "type": "main", "index": 0 }],
+        [{ "node": "Alert on Failure",   "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1", "saveManualExecutions": true },
+  "staticData": null,
+  "tags": [{ "id": "meeting-summary", "name": "Meeting Summary" }],
+  "meta": { "n8nVersion": "1.90.0" },
+  "id": "meeting-summary-agent-trigger"
+}

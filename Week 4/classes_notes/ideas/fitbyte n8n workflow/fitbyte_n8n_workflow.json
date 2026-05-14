@@ -1,0 +1,902 @@
+{
+  "name": "FitByte Lead Qualification Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "node_telegram_trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 400],
+      "webhookId": "fitbyte-telegram-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract message details\nconst msg = $input.item.json.message;\nconst chatId = msg.chat.id;\nconst text = (msg.text || '').trim();\nconst userId = msg.from.id;\nconst firstName = msg.from.first_name || 'there';\n\n// Get session from static data\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.sessions) staticData.sessions = {};\n\n// Initialize or retrieve session\nif (!staticData.sessions[userId]) {\n  staticData.sessions[userId] = {\n    step: 0,\n    answers: [],\n    name: '',\n    email: '',\n    firstName: firstName\n  };\n}\n\nconst session = staticData.sessions[userId];\n\nreturn {\n  chatId,\n  text,\n  userId,\n  firstName,\n  step: session.step,\n  answers: session.answers,\n  name: session.name,\n  email: session.email,\n  sessionFirstName: session.firstName\n};\n"
+      },
+      "id": "node_extract_session",
+      "name": "Extract & Load Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond_step0",
+              "leftValue": "={{ $json.step }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node_check_step",
+      "name": "Check Conversation Step",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "Hi {{ $json.firstName }}! 👋 I'm FitByte's smart fitness advisor.\n\nI'll help match you with the perfect gear in just 3 quick questions!\n\n*Question 1 of 3:* 🎯\nWhat's your main fitness goal?\n\nReply with:\n① Lose weight\n② Build muscle\n③ Track performance\n④ General wellness",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_send_q1",
+      "name": "Send Question 1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [900, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Save answer to Q1 and advance step\nconst staticData = $getWorkflowStaticData('global');\nconst userId = $json.userId;\nconst session = staticData.sessions[userId];\n\nsession.answers.push({ question: 'Main fitness goal', answer: $json.text });\nsession.step = 2;\nstaticData.sessions[userId] = session;\n\nreturn { chatId: $json.chatId, userId, step: 2, answers: session.answers };\n"
+      },
+      "id": "node_save_q1",
+      "name": "Save Answer Q1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 340]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "*Question 2 of 3:* ⌚\nHow do you prefer to track your workouts?\n\nReply with:\n① On my wrist (smartwatch style)\n② Minimal & discreet (ring or clip)\n③ Chest strap for maximum precision",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_send_q2",
+      "name": "Send Question 2",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 340],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Save answer to Q2 and advance step\nconst staticData = $getWorkflowStaticData('global');\nconst userId = $json.userId;\nconst session = staticData.sessions[userId];\n\nsession.answers.push({ question: 'Tracking preference', answer: $json.text });\nsession.step = 3;\nstaticData.sessions[userId] = session;\n\nreturn { chatId: $json.chatId, userId, step: 3, answers: session.answers };\n"
+      },
+      "id": "node_save_q2",
+      "name": "Save Answer Q2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 480]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "*Question 3 of 3:* 🏋️\nHow seriously do you train?\n\nReply with:\n① Casual (1–2x per week)\n② Regular (3–4x per week)\n③ Athlete (5+ sessions/week or competition level)",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_send_q3",
+      "name": "Send Question 3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 480],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Save answer to Q3 and advance step\nconst staticData = $getWorkflowStaticData('global');\nconst userId = $json.userId;\nconst session = staticData.sessions[userId];\n\nsession.answers.push({ question: 'Training intensity', answer: $json.text });\nsession.step = 4;\nstaticData.sessions[userId] = session;\n\nreturn { chatId: $json.chatId, userId, step: 4, answers: session.answers };\n"
+      },
+      "id": "node_save_q3",
+      "name": "Save Answer Q3",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 620]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "Almost there! 😊\n\nWhat's your *name*?",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_ask_name",
+      "name": "Ask for Name",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 620],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Save name and advance step\nconst staticData = $getWorkflowStaticData('global');\nconst userId = $json.userId;\nconst session = staticData.sessions[userId];\n\nsession.name = $json.text;\nsession.step = 5;\nstaticData.sessions[userId] = session;\n\nreturn { chatId: $json.chatId, userId, step: 5, name: session.name, answers: session.answers };\n"
+      },
+      "id": "node_save_name",
+      "name": "Save Name",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 760]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "And your *email address* so our team can get in touch? 📧",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_ask_email",
+      "name": "Ask for Email",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 760],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Validate email format\nconst email = $json.text.trim();\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst isValid = emailRegex.test(email);\n\nreturn {\n  chatId: $json.chatId,\n  userId: $json.userId,\n  email,\n  isValidEmail: isValid,\n  answers: $json.answers,\n  name: $json.name\n};\n"
+      },
+      "id": "node_validate_email",
+      "name": "Validate Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 900]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond_email_valid",
+              "leftValue": "={{ $json.isValidEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node_email_check",
+      "name": "Email Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 900]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "Hmm, that doesn't look like a valid email address. 🤔\n\nCould you try again? (e.g. yourname@email.com)",
+        "additionalFields": {}
+      },
+      "id": "node_retry_email",
+      "name": "Retry Email",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1340, 980],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Save valid email and advance to classification step\nconst staticData = $getWorkflowStaticData('global');\nconst userId = $json.userId;\nconst session = staticData.sessions[userId];\n\nsession.email = $json.email;\nsession.step = 6;\nstaticData.sessions[userId] = session;\n\nreturn {\n  chatId: $json.chatId,\n  userId,\n  email: session.email,\n  name: session.name,\n  answers: session.answers\n};\n"
+      },
+      "id": "node_save_email",
+      "name": "Save Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 820]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a fitness product classification expert for FitByte. Based on a user's answers to 3 qualification questions, you must classify them into exactly one product category.\n\nProduct Definitions:\n- WATCH: Smartwatch users who want wrist-based tracking. Typical profile: weight loss or performance goals, prefers wrist wearables, trains regularly or seriously.\n- RING: Minimal tracker users who want discreet monitoring. Typical profile: general wellness or weight loss, prefers discreet/ring form factor, casual to regular training.\n- CHESTBAND: Professional athletes who want maximum precision. Typical profile: performance tracking or muscle building, prefers chest strap accuracy, trains at athlete level (5+/week or competitive).\n\nIMPORTANT: You MUST respond with ONLY one of these three words: WATCH, RING, or CHESTBAND. No explanation, no punctuation, just the single word."
+            },
+            {
+              "role": "user",
+              "content": "=Classify this lead based on their answers:\n\nQ1 - Main fitness goal: {{ $json.answers[0].answer }}\nQ2 - Tracking preference: {{ $json.answers[1].answer }}\nQ3 - Training intensity: {{ $json.answers[2].answer }}\n\nClassify as WATCH, RING, or CHESTBAND:"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "node_classify_lead",
+      "name": "AI Lead Classification",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1560, 820],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_creds",
+          "name": "FitByte OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Extract classification result and prepare routing\nconst classification = ($json.message?.content || '').trim().toUpperCase();\nconst validClasses = ['WATCH', 'RING', 'CHESTBAND'];\nconst product = validClasses.includes(classification) ? classification : 'WATCH'; // default fallback\n\nreturn {\n  chatId: $json.chatId || $('Save Email').item.json.chatId,\n  userId: $json.userId || $('Save Email').item.json.userId,\n  name: $('Save Email').item.json.name,\n  email: $('Save Email').item.json.email,\n  answers: $('Save Email').item.json.answers,\n  product,\n  timestamp: new Date().toISOString(),\n  source: 'Telegram - Social Campaign'\n};\n"
+      },
+      "id": "node_parse_classification",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 820]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond_watch",
+              "leftValue": "={{ $json.product }}",
+              "rightValue": "WATCH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond_ring",
+              "leftValue": "={{ $json.product }}",
+              "rightValue": "RING",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond_chestband",
+              "leftValue": "={{ $json.product }}",
+              "rightValue": "CHESTBAND",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "node_route_product",
+      "name": "Route by Product",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [2000, 820]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_WATCH_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.name }} — Watch Lead",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Fitness Goal|rich_text",
+              "textContent": "={{ $json.answers[0].answer }}"
+            },
+            {
+              "key": "Tracking Preference|rich_text",
+              "textContent": "={{ $json.answers[1].answer }}"
+            },
+            {
+              "key": "Training Intensity|rich_text",
+              "textContent": "={{ $json.answers[2].answer }}"
+            },
+            {
+              "key": "Product Match|select",
+              "selectValue": "Fitness Watch"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "={{ $json.source }}"
+            },
+            {
+              "key": "Timestamp|date",
+              "date": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "node_notion_watch",
+      "name": "Add to Watch Sales Team",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2220, 680],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_creds",
+          "name": "FitByte Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_RING_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.name }} — Ring Lead",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Fitness Goal|rich_text",
+              "textContent": "={{ $json.answers[0].answer }}"
+            },
+            {
+              "key": "Tracking Preference|rich_text",
+              "textContent": "={{ $json.answers[1].answer }}"
+            },
+            {
+              "key": "Training Intensity|rich_text",
+              "textContent": "={{ $json.answers[2].answer }}"
+            },
+            {
+              "key": "Product Match|select",
+              "selectValue": "Fitness Ring"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "={{ $json.source }}"
+            },
+            {
+              "key": "Timestamp|date",
+              "date": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "node_notion_ring",
+      "name": "Add to Ring Sales Team",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2220, 820],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_creds",
+          "name": "FitByte Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "YOUR_CHESTBAND_DATABASE_ID",
+          "mode": "id"
+        },
+        "title": "={{ $json.name }} — Chestband Lead",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.name }}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{ $json.email }}"
+            },
+            {
+              "key": "Fitness Goal|rich_text",
+              "textContent": "={{ $json.answers[0].answer }}"
+            },
+            {
+              "key": "Tracking Preference|rich_text",
+              "textContent": "={{ $json.answers[1].answer }}"
+            },
+            {
+              "key": "Training Intensity|rich_text",
+              "textContent": "={{ $json.answers[2].answer }}"
+            },
+            {
+              "key": "Product Match|select",
+              "selectValue": "Chestband Pro"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "={{ $json.source }}"
+            },
+            {
+              "key": "Timestamp|date",
+              "date": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "node_notion_chestband",
+      "name": "Add to Chestband Sales Team",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2220, 960],
+      "credentials": {
+        "notionApi": {
+          "id": "notion_creds",
+          "name": "FitByte Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Classification').item.json.chatId }}",
+        "text": "🎉 You're all set, *{{ $('Parse Classification').item.json.name }}*!\n\nBased on your answers, our *FitByte specialist* will reach out to you shortly at {{ $('Parse Classification').item.json.email }}.\n\nGet ready to level up your fitness game! 💪🏆\n\n_— The FitByte Team_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_confirmation_watch",
+      "name": "Confirm to User (Watch)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2440, 680],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Classification').item.json.chatId }}",
+        "text": "🎉 You're all set, *{{ $('Parse Classification').item.json.name }}*!\n\nBased on your answers, our *FitByte specialist* will reach out to you shortly at {{ $('Parse Classification').item.json.email }}.\n\nGet ready to level up your fitness game! 💪🏆\n\n_— The FitByte Team_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_confirmation_ring",
+      "name": "Confirm to User (Ring)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2440, 820],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse Classification').item.json.chatId }}",
+        "text": "🎉 You're all set, *{{ $('Parse Classification').item.json.name }}*!\n\nBased on your answers, our *FitByte specialist* will reach out to you shortly at {{ $('Parse Classification').item.json.email }}.\n\nGet ready to level up your fitness game! 💪🏆\n\n_— The FitByte Team_",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node_confirmation_chestband",
+      "name": "Confirm to User (Chestband)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2440, 960],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_creds",
+          "name": "FitByte Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Clear session data after successful completion\nconst staticData = $getWorkflowStaticData('global');\nconst userId = $('Parse Classification').item.json.userId;\nif (staticData.sessions && staticData.sessions[userId]) {\n  delete staticData.sessions[userId];\n}\nreturn { success: true, userId };\n"
+      },
+      "id": "node_clear_session",
+      "name": "Clear Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 820]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract & Load Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Load Session": {
+      "main": [
+        [
+          {
+            "node": "Check Conversation Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Conversation Step": {
+      "main": [
+        [
+          {
+            "node": "Send Question 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Answer Q1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Answer Q2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Answer Q3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Name",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Answer Q1": {
+      "main": [
+        [
+          {
+            "node": "Send Question 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Answer Q2": {
+      "main": [
+        [
+          {
+            "node": "Send Question 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Answer Q3": {
+      "main": [
+        [
+          {
+            "node": "Ask for Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Name": {
+      "main": [
+        [
+          {
+            "node": "Ask for Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Email": {
+      "main": [
+        [
+          {
+            "node": "Email Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Valid?": {
+      "main": [
+        [
+          {
+            "node": "Save Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Retry Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Email": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Classification": {
+      "main": [
+        [
+          {
+            "node": "Parse Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [
+          {
+            "node": "Route by Product",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Product": {
+      "main": [
+        [
+          {
+            "node": "Add to Watch Sales Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add to Ring Sales Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add to Chestband Sales Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Watch Sales Team": {
+      "main": [
+        [
+          {
+            "node": "Confirm to User (Watch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Ring Sales Team": {
+      "main": [
+        [
+          {
+            "node": "Confirm to User (Ring)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Chestband Sales Team": {
+      "main": [
+        [
+          {
+            "node": "Confirm to User (Chestband)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm to User (Watch)": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm to User (Ring)": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm to User (Chestband)": {
+      "main": [
+        [
+          {
+            "node": "Clear Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2026-05-14T00:00:00.000Z",
+      "updatedAt": "2026-05-14T00:00:00.000Z",
+      "id": "fitbyte-lead-qual",
+      "name": "FitByte"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "n8nVersion": "1.90.0"
+  },
+  "id": "fitbyte-lead-qualification-agent",
+  "versionId": "v1.0.0"
+}

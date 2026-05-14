@@ -1,0 +1,6 @@
+# Lab Summary — Autonomous Agent Challenge Lab
+## FitByte Lead Qualification Agent
+
+The hardest part of planning this project was resisting the urge to over-engineer the solution. With LangChain, LangGraph, RAG, and n8n all on the table, there's a strong pull toward using everything — but this use case (a structured 3-question conversation with deterministic routing) genuinely doesn't need a stateful graph agent or a retrieval pipeline. Committing to n8n as the sole orchestrator, with a single OpenAI classification call at the end, required confidence that simplicity was the right architectural choice, not laziness.
+
+If I were to do this differently, I would involve the sales teams earlier in scoping — specifically to validate the 3 qualifying questions before any code is written, since the entire routing accuracy depends on those questions surfacing meaningful signal. The biggest open question is how to handle ambiguous leads: a user who says they train 3x/week (regular) but answers "chest strap for precision" creates a genuine product-fit conflict between Ring and Chestband, and the current MVP defaults to LLM judgment with no fallback escalation to a human — that gap needs to be closed before the campaign launches at scale.
