@@ -1,0 +1,691 @@
+{
+  "name": "AI Market Research Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-cron",
+      "name": "Daily Trigger (08:00 UTC)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "notes": "Fires every day at 08:00 UTC. Change cron expression to adjust schedule."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-topic",
+              "name": "topic",
+              "value": "AI regulation news Europe 2025",
+              "type": "string"
+            },
+            {
+              "id": "assign-run-id",
+              "name": "runId",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-config",
+      "name": "Set Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [460, 300],
+      "notes": "Change 'topic' value here to monitor a different subject."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "api_key",
+              "value": "={{ $vars.TAVILY_API_KEY }}"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json.topic }}"
+            },
+            {
+              "name": "search_depth",
+              "value": "basic"
+            },
+            {
+              "name": "max_results",
+              "value": 10
+            },
+            {
+              "name": "include_raw_content",
+              "value": false
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-tavily",
+      "name": "Search Web (Tavily)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "notes": "Searches Tavily for the configured topic. Returns up to 10 results."
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "id": "node-split",
+      "name": "Split Articles",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "notes": "Splits the Tavily results array so each article is processed individually."
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=You are a research analyst grading article relevance.\n\nMONITORING TOPIC: \"{{ $('Set Config').item.json.topic }}\"\n\nARTICLE:\nTitle: {{ $json.title }}\nURL: {{ $json.url }}\nSnippet: {{ $json.content }}\n\nTASK: Decide if this article is directly relevant to the monitoring topic.\nAn article is relevant if it:\n- Contains new information or developments about the topic\n- Is substantive (not just a passing mention)\n- Adds value to a market research digest\n\nRespond ONLY with JSON in this exact format:\n{\"relevance\": \"relevant\" or \"not_relevant\", \"score\": 0.0-1.0, \"reason\": \"one sentence\"}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "id": "node-grade",
+      "name": "Grade Relevance (GPT-4o-mini)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1120, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI API"
+        }
+      },
+      "notes": "LLM grades each article as relevant or not_relevant. This is the autonomous judgment step."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the LLM's JSON response safely\nconst raw = $input.item.json.message?.content || '{}';\nlet parsed = {};\ntry {\n  // Strip markdown fences if present\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch(e) {\n  parsed = { relevance: 'not_relevant', score: 0, reason: 'parse error' };\n}\n\nreturn {\n  ...($('Split Articles').item.json),\n  relevance: parsed.relevance,\n  relevance_score: parsed.score,\n  relevance_reason: parsed.reason,\n  topic: $('Set Config').item.json.topic,\n  runId: $('Set Config').item.json.runId\n};"
+      },
+      "id": "node-parse-grade",
+      "name": "Parse Grade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-relevant",
+              "leftValue": "={{ $json.relevance }}",
+              "rightValue": "relevant",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-filter-relevant",
+      "name": "Is Relevant?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "notes": "Conditional routing: relevant articles continue; irrelevant ones are dropped."
+    },
+    {
+      "parameters": {
+        "resource": "embedding",
+        "model": "text-embedding-3-small",
+        "text": "={{ $json.url + ' ' + $json.title }}"
+      },
+      "id": "node-embed",
+      "name": "Embed Article (for dedup)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1780, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI API"
+        }
+      },
+      "notes": "Embeds the article URL+title for semantic deduplication against Pinecone."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $vars.PINECONE_HOST }}/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "={{ $vars.PINECONE_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "vector",
+              "value": "={{ $json.embedding }}"
+            },
+            {
+              "name": "topK",
+              "value": 1
+            },
+            {
+              "name": "includeMetadata",
+              "value": false
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-pinecone-query",
+      "name": "Query Pinecone (dedup check)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 200],
+      "notes": "Queries Pinecone vector store. If top match score >= 0.95 → duplicate."
+    },
+    {
+      "parameters": {
+        "jsCode": "const matches = $json.matches || [];\nconst DEDUP_THRESHOLD = 0.95;\nconst isDuplicate = matches.length > 0 && matches[0].score >= DEDUP_THRESHOLD;\n\nreturn {\n  ...($('Parse Grade').item.json),\n  embedding: $('Embed Article (for dedup)').item.json.embedding,\n  is_duplicate: isDuplicate,\n  dedup_score: matches.length > 0 ? matches[0].score : 0\n};"
+      },
+      "id": "node-check-dup",
+      "name": "Evaluate Duplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-not-dup",
+              "leftValue": "={{ $json.is_duplicate }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-filter-dup",
+      "name": "Is New Article?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2440, 200],
+      "notes": "Only new (non-duplicate) articles proceed to insight extraction."
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=You are a research analyst extracting insights for a market research digest.\n\nARTICLE:\nTitle: {{ $json.title }}\nURL: {{ $json.url }}\nContent: {{ $json.content }}\n\nTASK: Extract exactly 3-5 factual, specific insights from this article.\n- Each insight must be a complete, standalone sentence\n- Cite only facts explicitly stated in the article\n- Focus on: announcements, data points, regulatory actions, product launches, strategic moves\n- Do NOT include vague statements or your own opinions\n\nRespond ONLY with a JSON array of strings:\n[\"insight 1\", \"insight 2\", \"insight 3\"]"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "node-extract",
+      "name": "Extract Insights (GPT-4o)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [2660, 100],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI API"
+        }
+      },
+      "notes": "Uses the higher-quality GPT-4o to extract structured insights from each relevant new article."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse insights array from LLM\nconst raw = $json.message?.content || '[]';\nlet insights = [];\ntry {\n  const cleaned = raw.replace(/```json|```/g, '').trim();\n  insights = JSON.parse(cleaned);\n  if (!Array.isArray(insights)) insights = [String(insights)];\n} catch(e) {\n  insights = ['Could not parse insights for: ' + $('Evaluate Duplicate').item.json.title];\n}\n\nreturn {\n  ...($('Evaluate Duplicate').item.json),\n  insights: insights,\n  insights_text: insights.map(i => '• ' + i).join('\\n')\n};"
+      },
+      "id": "node-parse-insights",
+      "name": "Parse Insights",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $vars.PINECONE_HOST }}/vectors/upsert",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "={{ $vars.PINECONE_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "vectors",
+              "value": "=[{\"id\": \"{{ $json.url.replace(/[^a-z0-9]/gi, '-').substring(0,64) }}\", \"values\": {{ $json.embedding }}, \"metadata\": {\"url\": \"{{ $json.url }}\", \"title\": \"{{ $json.title }}\", \"seen_at\": \"{{ $now.toISO() }}\"}}]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-pinecone-upsert",
+      "name": "Store in Pinecone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3100, 100],
+      "notes": "Upserts the article embedding to Pinecone so future runs detect it as a duplicate."
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "node-aggregate",
+      "name": "Aggregate All Articles",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [3320, 100],
+      "notes": "Collects all processed articles into a single array for digest generation."
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "=You are writing an executive summary for a daily market research digest.\n\nTOPIC: \"{{ $('Set Config').first().json.topic }}\"\nDATE: {{ $now.format('YYYY-MM-DD') }}\n\nARTICLES PROCESSED:\n{{ $json.data.map(a => a.title + '\\n' + a.insights_text).join('\\n\\n') }}\n\nWrite a 2-3 sentence executive summary that captures the most important developments across all articles today. Be specific, factual, and concise. Focus on patterns and the most impactful findings."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "node-exec-summary",
+      "name": "Generate Executive Summary",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [3540, 100],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const articles = $('Aggregate All Articles').first().json.data || [];\nconst execSummary = $json.message?.content || 'No summary generated.';\nconst topic = $('Set Config').first().json.topic;\nconst runDate = $now.format('YYYY-MM-DD');\n\n// Build Notion-ready markdown sections\nconst articleSections = articles.map(a => {\n  const bullets = a.insights_text || '• No insights extracted.';\n  return `### [${a.title}](${a.url})\\n*Relevance score: ${(a.relevance_score || 0).toFixed(2)}*\\n\\n${bullets}`;\n}).join('\\n\\n---\\n\\n');\n\nconst fullDigest = `# 📰 Market Research Digest: ${topic}\\n**Date:** ${runDate}\\n\\n---\\n\\n## 🔍 Executive Summary\\n\\n${execSummary}\\n\\n---\\n\\n## 📄 Articles & Insights\\n\\n${articleSections}\\n\\n---\\n*Generated by AI Market Research Monitor · ${$now.toISO()} UTC*`;\n\nreturn {\n  topic,\n  runDate,\n  articleCount: articles.length,\n  execSummary,\n  fullDigest,\n  topHeadline: articles.length > 0 ? articles[0].title : 'No articles found',\n  topInsight: articles.length > 0 ? articles[0].insights?.[0] : 'N/A'\n};"
+      },
+      "id": "node-build-digest",
+      "name": "Build Final Digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3760, 100]
+    },
+    {
+      "parameters": {
+        "resource": "page",
+        "operation": "create",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $vars.NOTION_DATABASE_ID }}",
+          "mode": "id"
+        },
+        "title": "=📰 {{ $json.topic }} — {{ $json.runDate }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Topic",
+              "type": "richText",
+              "textContent": "={{ $json.topic }}"
+            },
+            {
+              "key": "Run Date",
+              "type": "date",
+              "date": "={{ $json.runDate }}"
+            },
+            {
+              "key": "Articles Found",
+              "type": "number",
+              "numberValue": "={{ $json.articleCount }}"
+            },
+            {
+              "key": "Top Headline",
+              "type": "richText",
+              "textContent": "={{ $json.topHeadline }}"
+            },
+            {
+              "key": "Status",
+              "type": "select",
+              "selectValue": "Published"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "paragraph",
+              "textContent": "={{ $json.fullDigest }}"
+            }
+          ]
+        }
+      },
+      "id": "node-notion",
+      "name": "Write to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [3980, 100],
+      "credentials": {
+        "notionApi": {
+          "id": "notion-cred",
+          "name": "Notion API"
+        }
+      },
+      "notes": "Creates a new Notion page in your research database with the full digest."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "=✅ *Market Research Digest Ready*\n\n📌 *Topic:* {{ $('Build Final Digest').item.json.topic }}\n📅 *Date:* {{ $('Build Final Digest').item.json.runDate }}\n📰 *New articles:* {{ $('Build Final Digest').item.json.articleCount }}\n\n🔍 *Executive Summary:*\n{{ $('Build Final Digest').item.json.execSummary }}\n\n📖 *Top headline:* {{ $('Build Final Digest').item.json.topHeadline }}\n\n💡 *Key insight:* {{ $('Build Final Digest').item.json.topInsight }}\n\n👉 Full digest posted to Notion.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-success",
+      "name": "Telegram: Success Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4200, 100],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram Bot API"
+        }
+      },
+      "notes": "Sends a formatted success message to your Telegram chat when the digest is ready."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $vars.TELEGRAM_CHAT_ID }}",
+        "text": "=❌ *Market Research Monitor — Error*\n\n📌 *Topic:* {{ $('Set Config').item.json.topic }}\n📅 *Time:* {{ $now.toISO() }}\n\n⚠️ *Error:* {{ $json.message || 'Unknown error' }}\n\n🔍 Check n8n execution logs for details.\nExecution ID: {{ $execution.id }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-telegram-error",
+      "name": "Telegram: Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4200, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred",
+          "name": "Telegram Bot API"
+        }
+      },
+      "notes": "Sends an error alert to Telegram if any part of the workflow fails."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-log",
+              "name": "skipped_reason",
+              "value": "irrelevant",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-log-irrelevant",
+      "name": "Log: Skipped (Irrelevant)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1780, 440],
+      "notes": "Logs irrelevant articles. These are not processed further."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-log-dup",
+              "name": "skipped_reason",
+              "value": "duplicate",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-log-duplicate",
+      "name": "Log: Skipped (Duplicate)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [2660, 300],
+      "notes": "Logs duplicate articles that were already seen in previous runs."
+    }
+  ],
+  "connections": {
+    "Daily Trigger (08:00 UTC)": {
+      "main": [
+        [{"node": "Set Config", "type": "main", "index": 0}]
+      ]
+    },
+    "Set Config": {
+      "main": [
+        [{"node": "Search Web (Tavily)", "type": "main", "index": 0}]
+      ]
+    },
+    "Search Web (Tavily)": {
+      "main": [
+        [{"node": "Split Articles", "type": "main", "index": 0}]
+      ]
+    },
+    "Split Articles": {
+      "main": [
+        [{"node": "Grade Relevance (GPT-4o-mini)", "type": "main", "index": 0}]
+      ]
+    },
+    "Grade Relevance (GPT-4o-mini)": {
+      "main": [
+        [{"node": "Parse Grade", "type": "main", "index": 0}]
+      ]
+    },
+    "Parse Grade": {
+      "main": [
+        [{"node": "Is Relevant?", "type": "main", "index": 0}]
+      ]
+    },
+    "Is Relevant?": {
+      "main": [
+        [{"node": "Embed Article (for dedup)", "type": "main", "index": 0}],
+        [{"node": "Log: Skipped (Irrelevant)", "type": "main", "index": 0}]
+      ]
+    },
+    "Embed Article (for dedup)": {
+      "main": [
+        [{"node": "Query Pinecone (dedup check)", "type": "main", "index": 0}]
+      ]
+    },
+    "Query Pinecone (dedup check)": {
+      "main": [
+        [{"node": "Evaluate Duplicate", "type": "main", "index": 0}]
+      ]
+    },
+    "Evaluate Duplicate": {
+      "main": [
+        [{"node": "Is New Article?", "type": "main", "index": 0}]
+      ]
+    },
+    "Is New Article?": {
+      "main": [
+        [{"node": "Extract Insights (GPT-4o)", "type": "main", "index": 0}],
+        [{"node": "Log: Skipped (Duplicate)", "type": "main", "index": 0}]
+      ]
+    },
+    "Extract Insights (GPT-4o)": {
+      "main": [
+        [{"node": "Parse Insights", "type": "main", "index": 0}]
+      ]
+    },
+    "Parse Insights": {
+      "main": [
+        [{"node": "Store in Pinecone", "type": "main", "index": 0}]
+      ]
+    },
+    "Store in Pinecone": {
+      "main": [
+        [{"node": "Aggregate All Articles", "type": "main", "index": 0}]
+      ]
+    },
+    "Aggregate All Articles": {
+      "main": [
+        [{"node": "Generate Executive Summary", "type": "main", "index": 0}]
+      ]
+    },
+    "Generate Executive Summary": {
+      "main": [
+        [{"node": "Build Final Digest", "type": "main", "index": 0}]
+      ]
+    },
+    "Build Final Digest": {
+      "main": [
+        [{"node": "Write to Notion", "type": "main", "index": 0}]
+      ]
+    },
+    "Write to Notion": {
+      "main": [
+        [{"node": "Telegram: Success Notification", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "node-telegram-error"
+  },
+  "staticData": null,
+  "tags": ["market-research", "rag", "langgraph", "autonomous-agent"],
+  "triggerCount": 1,
+  "updatedAt": "2025-05-14T08:00:00.000Z",
+  "versionId": "1.0.0",
+  "_meta": {
+    "instanceId": "ai-market-research-monitor-v1",
+    "description": "Daily AI Market Research Monitor using LangGraph RAG pattern. Searches web, grades relevance, deduplicates via Pinecone, writes digest to Notion, notifies via Telegram.",
+    "required_credentials": [
+      "OpenAI API (openai-cred)",
+      "Notion API (notion-cred)",
+      "Telegram Bot API (telegram-cred)"
+    ],
+    "required_vars": [
+      "TAVILY_API_KEY",
+      "PINECONE_API_KEY",
+      "PINECONE_HOST (e.g. https://your-index-name.svc.pinecone.io)",
+      "NOTION_DATABASE_ID",
+      "TELEGRAM_CHAT_ID"
+    ],
+    "setup_steps": [
+      "1. Import this JSON into n8n via Settings > Import Workflow",
+      "2. Set up OpenAI, Notion, and Telegram Bot credentials in n8n",
+      "3. Create n8n Variables for all REQUIRED_VARS above",
+      "4. Create a Notion database with fields: Title (title), Topic (text), Run Date (date), Articles Found (number), Top Headline (text), Status (select)",
+      "5. Create a Telegram bot via @BotFather and get your chat ID",
+      "6. Activate the workflow — it will run daily at 08:00 UTC",
+      "7. Change the topic in 'Set Config' node to monitor a different subject"
+    ]
+  }
+}
