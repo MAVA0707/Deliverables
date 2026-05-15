@@ -1,0 +1,817 @@
+{
+  "name": "Moinland LinkedIn AI Content Creator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Moinland — New Coaching Transcript",
+        "formDescription": "Upload a coaching session transcript (.txt) to generate 3 LinkedIn post drafts.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Coaching Transcript",
+              "fieldType": "file",
+              "acceptFileTypes": ".txt",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Session Context (optional)",
+              "fieldType": "textarea",
+              "placeholder": "e.g. Series A founder, scaling sales team, recurring burnout theme"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e74db64-35c8-4f70-97c4-776ccd33d309",
+      "name": "1. Ingest Transcript",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -448,
+        208
+      ],
+      "webhookId": "e2288670-baa3-4046-a0ad-eef9670401ec"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80fa-9908-c2a15b84d136",
+          "mode": "list",
+          "cachedResultName": "Moinland Knowledge Base",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580fa9908c2a15b84d136"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Type|select",
+              "condition": "equals",
+              "selectValue": "Brand Voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac2dcdfa-4734-4477-b38f-087ed48864ff",
+      "name": "2a. Fetch Brand Voice",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        208
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80fa-9908-c2a15b84d136",
+          "mode": "list",
+          "cachedResultName": "Moinland Knowledge Base",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580fa9908c2a15b84d136"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Type|select",
+              "condition": "equals",
+              "selectValue": "Example Post"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d8691886-c4b6-43f5-9fca-77065c2d0493",
+      "name": "2b. Fetch Example Posts",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        176,
+        208
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Read transcript from the binary reader node\nconst transcript = $('Read Transcript Binary').first().json.transcript || '';\nconst sessionContext = $('Read Transcript Binary').first().json.sessionContext || 'None provided';\n\n// Get all Notion KB items from the merge node\nconst items = $input.all();\n\n// Extract brand voice pages\nconst brandVoice = items\n  .filter(i => i.json.properties?.Type?.select?.name === 'Brand Voice')\n  .map(i => i.json.properties?.Content?.rich_text?.map(t => t.plain_text).join('') || '')\n  .join('\\n\\n');\n\n// Extract example posts\nconst examplePosts = items\n  .filter(i => i.json.properties?.Type?.select?.name === 'Example Post')\n  .map((i, idx) => {\n    const content = i.json.properties?.Content?.rich_text?.map(t => t.plain_text).join('') || '';\n    const name = i.json.properties?.Name?.title?.map(t => t.plain_text).join('') || `Post ${idx + 1}`;\n    return `--- Example Post ${idx + 1}: ${name} ---\\n${content}`;\n  })\n  .join('\\n\\n');\n\n// Extract coaching frameworks\nconst frameworks = items\n  .filter(i => i.json.properties?.Type?.select?.name === 'Framework')\n  .map(i => {\n    const name = i.json.properties?.Name?.title?.map(t => t.plain_text).join('') || '';\n    const content = i.json.properties?.Content?.rich_text?.map(t => t.plain_text).join('') || '';\n    return `- ${name}: ${content}`;\n  })\n  .join('\\n');\n\nreturn [{\n  json: {\n    transcript,\n    sessionContext,\n    brandVoice: brandVoice || 'Active voice. Direct. Practitioner-level. No hype, no exclamation marks. Short sentences. Second person where possible. No motivational filler.',\n    examplePosts: examplePosts || 'No example posts found in knowledge base.',\n    frameworks: frameworks || 'No frameworks found in knowledge base.',\n    icp: 'Tech startup founders and early-stage CEOs (Seed to Series B). They are time-poor, results-oriented, skeptical of generic advice. They respond to specific, contrarian, practitioner-grounded insights.'\n  }\n}];"
+      },
+      "id": "812a282b-21c9-4c67-82ab-74ccd84db321",
+      "name": "Build Knowledge Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse topic extraction result and format for human review\nconst response = $input.first().json;\n\n// Handle both raw JSON and message-wrapped responses\nlet content;\nif (response.message && response.message.content) {\n  content = typeof response.message.content === 'string' ? JSON.parse(response.message.content) : response.message.content;\n} else if (response.topics) {\n  content = response;\n} else if (typeof response === 'string') {\n  content = JSON.parse(response);\n} else {\n  content = response;\n}\n\nconst topics = content.topics || [];\n\n// Format a clean markdown summary for the human review form\nconst summary = topics.map(t => `**Topic ${t.id}: ${t.title}**\\n- Insight: ${t.insight}\\n- Hook angle: ${t.hook_angle}\\n- ICP relevance: ${t.icp_relevance}\\n- Why aha: ${t.why_aha}`).join('\\n\\n');\n\nreturn [{\n  json: {\n    topics,\n    summary,\n    topicChoices: topics.map(t => `${t.id} — ${t.title}`),\n    context: $('Build Knowledge Context').first().json\n  }\n}];"
+      },
+      "id": "a9bc4da7-ee5f-4e80-b036-a8b9fa9fdeb4",
+      "name": "Parse Topics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Moinland — Select 3 Topics for LinkedIn Posts",
+        "formDescription": "=Review the 5 extracted topics and pick the 3 best for LinkedIn posts.\n\n{{ $json.summary }}",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Topic",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Second Topic",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Third Topic",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Custom angle / instruction (optional)",
+              "fieldType": "textarea",
+              "placeholder": "e.g. Tie all three to fundraising season, keep under 150 words"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b51a81fd-aae8-4fec-bd44-089142e54681",
+      "name": "4. Human Topic Selection",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        448
+      ],
+      "webhookId": "eead1e86-a27f-41f8-8e5a-a0aee4027b57"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a senior LinkedIn content strategist for Moinland. Your job is to produce a structured content BRIEF (not the post itself) that a writer will use to draft a LinkedIn post.\n\nThink step by step. For the topic provided, work through:\n1. What is the single \"aha\" insight this post must deliver?\n2. Who exactly is the reader, and what state of mind are they in when they scroll past?\n3. What hook style will stop them (contrarian claim, surprising stat, vivid story, sharp question)?\n4. What is the supporting evidence or story beat?\n5. What is the one specific takeaway action or mindset shift?\n6. What is the CTA (soft — invitation to think, comment, or DM — NEVER \"book a call\")?\n\nReturn ONLY a JSON object:\n{\n  \"aha_insight\": \"...\",\n  \"reader_state\": \"...\",\n  \"hook_style\": \"...\",\n  \"hook_draft\": \"...\",\n  \"body_beats\": [\"beat 1\", \"beat 2\", \"beat 3\"],\n  \"takeaway\": \"...\",\n  \"cta\": \"...\",\n  \"target_length_words\": 150\n}",
+              "role": "system"
+            },
+            {
+              "content": "=Here is a list of topics with the following structure:\nTitle\nInsight\nHook\nICP relevance\nWhy Aha\n{{ $json.summary }}\n\nAnd a  CUSTOM ANGLE FROM COACH:{{ $('1. Ingest Transcript').item.json['Session Context (optional)'] }}\n\nBuild a content brief. JSON only, no markdown fences."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.5
+        }
+      },
+      "id": "3c4ccf67-2951-47d0-bbbd-2fa890819ff9",
+      "name": "5a. Brief — Chain of Thought",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1408,
+        208
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Attach the brief back to the item so the next node can use both topic + brief + context\nconst response = $input.first().json;\nlet brief;\nif (response.message && response.message.content) {\n  brief = typeof response.message.content === 'string' ? JSON.parse(response.message.content) : response.message.content;\n} else {\n  brief = response;\n}\n\nreturn [{\n  json: {\n    ...$('Parse Topics').item.json,\n    brief\n  }\n}];"
+      },
+      "id": "e7039696-32d7-4ca1-bee0-e362a92b76a0",
+      "name": "Attach Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are writing a LinkedIn post AS the CEO/CRO of Moinland — a coaching firm for tech startup founders.\n\n=== BRAND VOICE (non-negotiable) ===\nActive voice. Direct. Practitioner-level. No hype, no exclamation marks. Short sentences. Second person where possible. No motivational filler.\n\n=== POST STRUCTURE RULES ===\n- Hook: first 1-2 lines must stop the scroll (no \"In today's world...\" openers)\n- Body: 3-5 short paragraphs, 1-2 sentences each\n- Use line breaks liberally — LinkedIn rewards whitespace\n- Specificity over abstraction (numbers, named situations, concrete examples)\n- NO emojis unless one is genuinely earned\n- NO hashtag spam — max 3 hashtags at the end, only if they add discovery value\n- NO motivational closers (\"You got this!\" \"Keep grinding\")\n- CTA: soft invitation to reflect or reply, never a sales pitch\n- Length: target the words specified in the brief (±20%)\n\nReturn ONLY the final post text. No JSON, no markdown headings, no commentary.",
+              "role": "system"
+            },
+            {
+              "content": "=TOPIC: choose one of the topic choices {{ $json.topicChoices }}\n\nAHA INSIGHT: {{ $('Attach Brief').item.json.brief.aha_insight }}\nREADER STATE: {{ $('Attach Brief').item.json.brief.reader_state }}\nHOOK STYLE: {{ $('Attach Brief').item.json.brief.hook_style }}\nHOOK DRAFT (refine, don't copy): {{ $('Attach Brief').item.json.brief.hook_draft }}\nBODY BEATS:\n{{ $('Attach Brief').item.json.brief.body_beats.join('\\n') }}\nTAKEAWAY: {{ $('Attach Brief').item.json.brief.takeaway }}\nCTA: {{ $('Attach Brief').item.json.brief.cta }}\nTARGET LENGTH: {{ $('Attach Brief').item.json.brief.target_length_words }} words\n\nCUSTOM ANGLE FROM COACH: {{ $('1. Ingest Transcript').item.json['Session Context (optional)'] }}\n\nWrite the post."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8
+        }
+      },
+      "id": "f9cc15d4-a292-45c1-9cab-c1755d46e36a",
+      "name": "5b. Publish — Write LinkedIn Post",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2000,
+        208
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull post text out of OpenAI response and compute metadata for Notion\nconst response = $input.first().json;\nconst postText = response.message?.content || response.content || response.text || '';\n\nconst wordCount = postText.trim().split(/\\s+/).length;\nconst charCount = postText.length;\nconst readTimeSec = Math.ceil(wordCount / 3.5); // ~210 wpm reading speed\n\nconst topicData = $('Attach Brief').item.json;\n\nreturn [{\n  json: {\n    postText,\n    wordCount,\n    charCount,\n    readTimeSec,\n    topic: topicData.topic,\n    brief: topicData.brief,\n    customAngle: topicData.customAngle,\n    runTimestamp: topicData.runTimestamp\n  }\n}];"
+      },
+      "id": "b90b0c9e-ea25-4eb8-9db8-1cc13b6e6e09",
+      "name": "Format Post + Metadata",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80bc-95cf-f249241294f9",
+          "mode": "list",
+          "cachedResultName": "Moinland Content Calendar",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580bc95cff249241294f9"
+        },
+        "title": "={{ $json.brief.hook_draft }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Draft for Review"
+            },
+            {
+              "key": "Hook Angle|select",
+              "selectValue": "={{ $('Attach Brief').item.json.topics[0].hook_angle }}"
+            },
+            {
+              "key": "Word Count|number",
+              "numberValue": "={{ $('Format Post + Metadata').item.json.wordCount }}"
+            },
+            {
+              "key": "Char Count|number",
+              "numberValue": "={{ $('Format Post + Metadata').item.json.charCount }}"
+            },
+            {
+              "key": "Read Time (sec)|number",
+              "numberValue": "={{ $json.readTimeSec }}"
+            },
+            {
+              "key": "Generated At|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Aha Insight|rich_text",
+              "textContent": "={{ $('Format Post + Metadata').item.json.brief.aha_insight }}"
+            },
+            {
+              "key": "Post Draft|rich_text",
+              "textContent": "={{ $('Format Post + Metadata').item.json.postText }}"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "heading_2",
+              "textContent": "LinkedIn Draft"
+            },
+            {
+              "textContent": "={{ $('Format Post + Metadata').item.json.postText }}"
+            },
+            {
+              "type": "heading_3",
+              "textContent": "Brief"
+            },
+            {
+              "textContent": "=Aha Insight: {{ $('Format Post + Metadata').item.json.brief.aha_insight }} Hook Style: {{ $('Format Post + Metadata').item.json.brief.hook_style }} Takeaway: {{ $('Format Post + Metadata').item.json.brief.takeaway }} CTA: {{ $('Format Post + Metadata').item.json.brief.cta }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2bbe7711-0157-44b3-af55-ec8ac3afd001",
+      "name": "6. Write Draft to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2688,
+        208
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Summarise the 3 drafts for the Slack notification\nconst items = $input.all();\nconst count = items.length;\nconst titles = items.map((i, idx) => `${idx + 1}. ${i.json.topic?.title || i.json.title || 'Untitled'}`).join('\\n');\n\nreturn [{\n  json: {\n    count,\n    titles,\n    summary: `🎯 ${count} new LinkedIn drafts ready for review in Notion → Content Calendar (filter: Status = \"Draft for Review\")`\n  }\n}];"
+      },
+      "id": "b7fc2539-b345-4a75-9410-1c0371b4b739",
+      "name": "Build Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2992,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "list",
+          "cachedResultName": "#moinland-content"
+        },
+        "text": "={{ $json.summary }}",
+        "otherOptions": {}
+      },
+      "id": "84697ffc-f3d2-4d21-ad7e-11ff745ed4b7",
+      "name": "Notify Slack (Optional)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        3312,
+        432
+      ],
+      "webhookId": "1cfebc06-ef61-4a5a-b57e-97fef7f89c4c"
+    },
+    {
+      "parameters": {
+        "chatId": "8452712398",
+        "text": "={{ $json.summary }}\n\n\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3296,
+        208
+      ],
+      "id": "98bf3c38-6ca2-4413-b1d1-65851e8aa726",
+      "name": "Send a text message",
+      "webhookId": "ce0b07d0-8499-4167-8b0b-c8c0c05671f8",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a senior content strategist for Moinland, a coaching firm for tech startup founders.\n\nYour job: extract the 3 most LinkedIn-worthy topics from a coaching transcript.\n\nIDEAL CLIENT PROFILE:\nTech startup founders and early-stage CEOs (Seed to Series B). They are time-poor, results-oriented, skeptical of generic advice. They respond to specific, contrarian, practitioner-grounded insights.\n\nWhat makes a topic LinkedIn-worthy:\n- Contains a specific, contrarian, or practitioner-only insight (not generic advice)\n- Reframes a common founder problem in a new way\n- Could trigger an \"aha\" moment for the ICP\n- Can be supported by a concrete example or framework\n- Is NOT tied to confidential client details\n\nReturn ONLY a JSON object in this exact shape:\n{\n  \"topics\": [\n    {\n      \"id\": 1,\n      \"title\": \"Short punchy topic title (max 10 words)\",\n      \"insight\": \"The core insight in 1-2 sentences\",\n      \"hook_angle\": \"Suggested hook style (contrarian | story | data | question)\",\n      \"icp_relevance\": \"1-10 score with one-line justification\",\n      \"why_aha\": \"What makes this an aha moment for the ICP\"\n    }\n  ]\n}",
+              "role": "system"
+            },
+            {
+              "content": "=SESSION CONTEXT:\n{{ $('Build Knowledge Context').item.json.sessionContext }}\n\nCOACHING TRANSCRIPT:\n{{ $('Build Knowledge Context').item.json.transcript }}\n\nExtract the top 3 LinkedIn-worthy topics. Return JSON only, no markdown fences."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "id": "e132c64e-b680-49ca-aac5-fd41c53f9e86",
+      "name": "3. Monitor — Extract 3 Topics",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        736,
+        208
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'Coaching_Transcript');\nconst transcriptText = buffer.toString('utf8');\n\nreturn [{\n  json: {\n    transcript: transcriptText,\n    sessionContext: item.json['Session Context (optional)'] || 'None provided'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        208
+      ],
+      "id": "ac316e4f-1535-45f9-8570-518f94053468",
+      "name": "Read Transcript Binary"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Ingest Transcript": {
+      "main": [
+        [
+          {
+            "node": "Read Transcript Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2a. Fetch Brand Voice": {
+      "main": [
+        [
+          {
+            "node": "2b. Fetch Example Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2b. Fetch Example Posts": {
+      "main": [
+        [
+          {
+            "node": "Build Knowledge Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Knowledge Context": {
+      "main": [
+        [
+          {
+            "node": "3. Monitor — Extract 3 Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Human Topic Selection": {
+      "main": [
+        []
+      ]
+    },
+    "5a. Brief — Chain of Thought": {
+      "main": [
+        [
+          {
+            "node": "Attach Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Brief": {
+      "main": [
+        [
+          {
+            "node": "5b. Publish — Write LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5b. Publish — Write LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Format Post + Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Post + Metadata": {
+      "main": [
+        [
+          {
+            "node": "6. Write Draft to Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Write Draft to Notion": {
+      "main": [
+        [
+          {
+            "node": "Build Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Notification": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Topics": {
+      "main": [
+        [
+          {
+            "node": "5a. Brief — Chain of Thought",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Monitor — Extract 3 Topics": {
+      "main": [
+        [
+          {
+            "node": "Parse Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Transcript Binary": {
+      "main": [
+        [
+          {
+            "node": "2a. Fetch Brand Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b1e1abdf-847e-4494-b372-eae852ba51bc",
+  "meta": {
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "qaEHubB2aAhreUes",
+  "tags": [
+    {
+      "name": "Moinland",
+      "id": "P1Bj8ZQ6Py01EmIq",
+      "updatedAt": "2026-05-15T08:01:56.427Z",
+      "createdAt": "2026-05-15T08:01:56.427Z"
+    },
+    {
+      "name": "LinkedIn",
+      "id": "eAXRnrakb4BuvpkL",
+      "updatedAt": "2026-05-15T08:01:56.441Z",
+      "createdAt": "2026-05-15T08:01:56.441Z"
+    },
+    {
+      "name": "Content",
+      "id": "aAH3qI6VPXNG5B8B",
+      "updatedAt": "2026-05-15T08:01:56.436Z",
+      "createdAt": "2026-05-15T08:01:56.436Z"
+    }
+  ]
+}
