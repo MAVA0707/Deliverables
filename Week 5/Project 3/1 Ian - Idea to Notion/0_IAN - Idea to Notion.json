@@ -1,0 +1,466 @@
+{
+  "name": "IAN - Idea to Notion",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "0fa5a777-cf00-4b0f-9969-696f0981acf8",
+      "name": "Telegram Listener",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -576,
+        -432
+      ],
+      "webhookId": "c43d0f3e-c8a5-4935-9ead-13ff91423b90",
+      "retryOnFail": true,
+      "notesInFlow": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      },
+      "notes": "Telegram Listener"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "35f641dc48758087a744fcb84e915175",
+          "mode": "id"
+        },
+        "title": "={{ $('Telegram Listener').item.json.message.text }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Content|rich_text",
+              "textContent": "={{ $json.output[0].content[0].text }}"
+            },
+            {
+              "key": "Requested by|rich_text",
+              "textContent": "={{ $('Telegram Listener').item.json.message.chat.first_name }}"
+            },
+            {
+              "key": "Created|date",
+              "includeTime": false,
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Draft"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c28b6b8d-7378-4c4c-8cf5-1a1850a23fe8",
+      "name": "Notion – Create Page1",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        -432
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      },
+      "notes": "STEP 5 – PUBLISH TO NOTION: Creates a new page with blog content + brief appended below a divider."
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.from.id }}",
+        "text": "Got it! Generating your blog post and saving it to Notion Blogpost Pipeline.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "f9f30736-3ba6-4fae-8d93-86796c8261a0",
+      "name": "Telegram – Got it",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        -432
+      ],
+      "webhookId": "04222d77-0965-42bb-8254-11377f1dc742",
+      "notesInFlow": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      },
+      "notes": "Telegram - Acknowledgement"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80fa-9908-c2a15b84d136",
+          "mode": "list",
+          "cachedResultName": "Moinland Knowledge Base",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580fa9908c2a15b84d136"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Type|select",
+              "condition": "equals",
+              "selectValue": "Brand Voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -432
+      ],
+      "id": "1d057329-46bd-4f99-97c9-35884f6f0454",
+      "name": "Get Brand Voice",
+      "retryOnFail": true,
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      },
+      "notes": "Get Brand Voice"
+    },
+    {
+      "parameters": {
+        "query": "={{ $('Telegram Listener').item.json.message.text }}",
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        48,
+        -272
+      ],
+      "id": "c135a316-96b5-4525-9db1-161a5a695d26",
+      "name": "Search in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "WJkd68ezdwHSRgDA",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a senior LinkedIn content strategist for Moinland. Your job is to produce a structured content BRIEF (not the post itself) that a writer will use to draft a LinkedIn post.\n\nThink step by step. For the topic provided, work through:\n1. What is the single \"aha\" insight this post must deliver?\n2. Who exactly is the reader, and what state of mind are they in when they scroll past?\n3. What hook style will stop them (contrarian claim, surprising stat, vivid story, sharp question)?\n4. What is the supporting evidence or story beat?\n5. What is the one specific takeaway action or mindset shift?\n6. What is the CTA (soft — invitation to think, comment, or DM — NEVER \"book a call\")?\n"
+            },
+            {
+              "content": "=Create a content brief for the following topic:  {{ $('Telegram Listener').item.json.message.text }}\n\nSearch the web and find 2-5 data points, that resonate ffor the target ICP."
+            }
+          ]
+        },
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "medium"
+          }
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        -432
+      ],
+      "id": "227b99d8-cee6-4a8b-ac96-1441bd8a8fcb",
+      "name": "Research and Content Brief",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are writing a LinkedIn post as the CEO/CRO of Moinland — a coaching firm for tech startup founders.\n\n=== BRAND VOICE (non-negotiable) ===\n{{ $('Get Brand Voice').item.json.property_content }}\n\n=== POST STRUCTURE RULES ===\n- Hook: first 1-2 lines must stop the scroll (no \"In today's world...\" openers, challenging and contrarian)\n- Body: 3-5 short paragraphs, 1-2 sentences each\n- Use line breaks liberally — LinkedIn rewards whitespace\n- Specificity over abstraction (numbers, named situations, concrete examples)\n- NO emojis unless one is genuinely earned\n- NO hashtag spam — max 3 hashtags at the end, only if they add discovery value\n- NO motivational closers (\"You got this!\" \"Keep grinding\")\n- CTA: soft invitation to reflect or reply, never a sales pitch\n- Length: target the words specified in the brief (±20%)\n\n"
+            },
+            {
+              "content": "=Read these posts and use it to learn the writing style:\n{{ $json.property_content }}\n\nCreate one LinkedIn post based on the following brief:\n{{ $('Research and Content Brief').item.json.output[0].content[0].text }}\n\nTarget it to the ICP of Moinland as specified in the Brand Voice Guidelines.\n\n\nReturn ONLY the final post text. No JSON, no markdown headings, no commentary.  "
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        -432
+      ],
+      "id": "aa8b6f8d-9363-456d-a4c3-b4ff634c24ca",
+      "name": "Create LinkedIn Post",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80fa-9908-c2a15b84d136",
+          "mode": "list",
+          "cachedResultName": "Moinland Knowledge Base",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580fa9908c2a15b84d136"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Type|select",
+              "condition": "equals",
+              "selectValue": "Example Post"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        -432
+      ],
+      "id": "cf9fc67a-db7a-4bfb-8ed4-0aa716325ee8",
+      "name": "Get Example Posts",
+      "retryOnFail": true,
+      "notesInFlow": false,
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Listener').item.json.message.from.id }}",
+        "text": "=✅ Success. Your LinkedIn post is ready in Notion:  \n{{ $json.url }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        -432
+      ],
+      "id": "48a33e7f-70c3-4c33-99d6-a5c7f640aad5",
+      "name": "Success",
+      "webhookId": "e792f55a-a9b6-4a4d-9eab-2212335ef561",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        96,
+        -32
+      ],
+      "id": "72842381-4b82-4116-88b3-58d149aca0bc",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=🚨 Agent Ian failed to create LinkedIn blogpost.\nError Message:\n{{ $json.error.message }}\nNode Name:\n{{ $json.error.node.name }}\nTimestamp:\n{{ $now }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        -32
+      ],
+      "id": "c85b49ad-99a7-4461-993b-ef06ff6ee0ec",
+      "name": "Error",
+      "webhookId": "e792f55a-a9b6-4a4d-9eab-2212335ef561",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Listener": {
+      "main": [
+        [
+          {
+            "node": "Telegram – Got it",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram – Got it": {
+      "main": [
+        [
+          {
+            "node": "Get Brand Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Brand Voice": {
+      "main": [
+        [
+          {
+            "node": "Research and Content Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research and Content Brief",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research and Content Brief": {
+      "main": [
+        [
+          {
+            "node": "Get Example Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Example Posts": {
+      "main": [
+        [
+          {
+            "node": "Create LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Notion – Create Page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion – Create Page1": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success": {
+      "main": [
+        []
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6077f046-5930-4bd0-b1dd-716b896c099a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "PhkfVRRwB5Bq0GLF",
+  "tags": []
+}

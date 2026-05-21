@@ -1,0 +1,586 @@
+{
+  "name": "Rea - Research & Analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "e14e56d5-6514-4f3e-b76f-57767786630e",
+      "name": "Get Articles Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        560,
+        160
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rss-moinland-1",
+              "name": "rss",
+              "type": "array",
+              "value": "=[\n  \"https://sifted.eu/feed/\",\n  \"https://www.deutsche-startups.de/feed/\",\n  \"https://www.eu-startups.com/feed/\",\n  \"https://siliconcanals.com/feed/\"\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f3cb2586-2c69-4229-8714-8e4b491a6246",
+      "name": "Set Moinland RSS Feeds",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        784,
+        160
+      ],
+      "typeVersion": 3.4,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "rss",
+        "options": {}
+      },
+      "id": "23a2da43-d20f-4a10-8bce-45a249b08d0d",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        1008,
+        160
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.rss }}",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "id": "2f01d372-a6bc-4d48-8c56-30bfdb90160a",
+      "name": "Read RSS News Feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        1216,
+        160
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "norm-title",
+              "name": "title",
+              "type": "string",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "id": "norm-content",
+              "name": "content",
+              "type": "string",
+              "value": "={{ $json['content:encodedSnippet'] ?? $json.contentSnippet ?? '' }}"
+            },
+            {
+              "id": "norm-date",
+              "name": "date",
+              "type": "string",
+              "value": "={{ $json.isoDate }}"
+            },
+            {
+              "id": "norm-link",
+              "name": "link",
+              "type": "string",
+              "value": "={{ $json.link }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "978a4eee-571f-4afc-8b87-d1ca9ca616ce",
+      "name": "Set and Normalize Fields",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1440,
+        160
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "39bb4dc8-2291-47ea-af33-e9ab79a76426",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        1536,
+        368
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "=# {{ $json.title }}\n{{ $json.content }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "title",
+                "value": "={{ $json.title }}"
+              },
+              {
+                "name": "createDate",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "name": "publishDate",
+                "value": "={{ $json.date }}"
+              },
+              {
+                "name": "link",
+                "value": "={{ $json.link }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "6e61fba1-0715-4f47-bbb0-8749cd756c99",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1696,
+        320
+      ],
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chunkSize": 3000,
+        "options": {}
+      },
+      "id": "9280329d-59d6-4bec-9c54-3d703a279e92",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "position": [
+        1840,
+        464
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "moinland-briefing",
+          "mode": "list",
+          "cachedResultName": "moinland-briefing"
+        },
+        "options": {}
+      },
+      "id": "e18c06d9-0d9f-408c-a256-0be3b82f5273",
+      "name": "Store Articles in Pinecone",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [
+        1664,
+        160
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "pineconeApi": {
+          "id": "e1V3KLu5uUsncikF",
+          "name": "Pinecone Moinland"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "e96eae11-48eb-49ff-9c1a-4131700ad154",
+      "name": "Send Weekly Briefing",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        528,
+        832
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "interests-moinland",
+              "name": "Interests",
+              "type": "string",
+              "value": "startup funding Germany, DACH venture capital, Series A Series B rounds, investor news, VC fund closes, founder exits, PE activity Germany, startup coaching, mental fitness founders, leadership scaling, VC German market analysis"
+            },
+            {
+              "id": "items-count",
+              "name": "Number of news items to include",
+              "type": "string",
+              "value": "8"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5652d183-64b1-46fa-9f04-ab413fd6647b",
+      "name": "Moinland Topics of Interest",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        768,
+        832
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Summarize the most relevant startup funding and investor news published in the past 7 days. Today is {{ $now }}",
+        "options": {
+          "systemMessage": "=You are Daniel Kraft's research assistant at Moinland. Daniel is a 5x founder, serial entrepreneur, and coach to startup founders and CEOs in Germany.\n\nYour job: turn the articles from the vector store into a tight Monday morning briefing Daniel can read in 5 minutes and use directly in client conversations.\n\nPrioritize stories related to: {{ $json.Interests }}\n\nWrite the briefing in this exact structure:\n\n**Big rounds this week**\nList the {{ $json['Number of news items to include'] }} most relevant funding rounds. For each: company name, round size, stage, sector, lead investor, and one sentence on why it matters to a founder coach.\n\n**Investor moves**\n2–3 items on new funds raised, partner hires, LP closes, or strategy shifts from active DACH/European investors.\n\n**Market signal**\nONE insight Daniel can use in client conversations this week. Frame it as a founder-relevant truth, not a news headline. Example: 'Seed valuations in German B2B SaaS are compressing — founders raising in Q3 should expect 15–20% lower pre-money than 2023.'\n\n**Founder pulse**\nWhat founders are talking about right now. Concerns, sentiment, emerging topics. 2–3 sentences.\n\nRules:\n- No fluff. No 'it is worth noting that'. No passive voice.\n- Write like a sparring partner, not a journalist.\n- If there is nothing meaningful in a section, write 'Nothing significant this week.'\n- Include the article title and a direct link to the original source for each item.\n- Total length: max 450 words.\n- Avoid duplicate stories."
+        }
+      },
+      "id": "0fd3002d-4e45-4e90-a9e3-05b2fe1ae39f",
+      "name": "Moinland Briefing AI",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1008,
+        768
+      ],
+      "typeVersion": 1.9,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "21ce0669-0f1b-47c0-91c0-6c422217313e",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        976,
+        992
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "get_funding_news",
+        "toolDescription": "Call this tool to retrieve the latest startup funding and investor news articles from the Moinland Pinecone knowledge base.",
+        "pineconeIndex": {
+          "__rl": true,
+          "mode": "list",
+          "value": "moinland-briefing",
+          "cachedResultName": "moinland-briefing"
+        },
+        "topK": 30,
+        "options": {}
+      },
+      "id": "7cc4ee69-f977-4eca-b6c7-012b7ac3911b",
+      "name": "Get Funding News from Pinecone",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [
+        1120,
+        976
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "pineconeApi": {
+          "id": "e1V3KLu5uUsncikF",
+          "name": "Pinecone Moinland"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e64eff13-e6db-4e06-82f6-554d351c1907",
+      "name": "Embeddings OpenAI2",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        1328,
+        1088
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.output }}",
+        "options": {}
+      },
+      "id": "bb473684-31e2-4c74-a22f-45f32f501e60",
+      "name": "Convert Response to an Email-Friendly Format",
+      "type": "n8n-nodes-base.markdown",
+      "position": [
+        1360,
+        768
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "fromEmail": "briefing@vonaschoff.de",
+        "toEmail": "markus@vonaschoff.de",
+        "subject": "=Moinland Briefing — {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy') }}",
+        "html": "={{ $json.data }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1568,
+        768
+      ],
+      "id": "9fe733f4-b7ea-4ca8-b1ff-676d1fa7f6a1",
+      "name": "Send an Email",
+      "webhookId": "2fa34720-f890-4ab8-8f74-add4d2ed9451",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "smtp": {
+          "id": "imtJEXYdBnD17Brk",
+          "name": "SMTP Ionos"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Articles Daily": {
+      "main": [
+        [
+          {
+            "node": "Set Moinland RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Moinland RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Read RSS News Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read RSS News Feeds": {
+      "main": [
+        [
+          {
+            "node": "Set and Normalize Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set and Normalize Fields": {
+      "main": [
+        [
+          {
+            "node": "Store Articles in Pinecone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store Articles in Pinecone",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store Articles in Pinecone",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Weekly Briefing": {
+      "main": [
+        [
+          {
+            "node": "Moinland Topics of Interest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moinland Topics of Interest": {
+      "main": [
+        [
+          {
+            "node": "Moinland Briefing AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Moinland Briefing AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Funding News from Pinecone": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moinland Briefing AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Get Funding News from Pinecone",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moinland Briefing AI": {
+      "main": [
+        [
+          {
+            "node": "Convert Response to an Email-Friendly Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Response to an Email-Friendly Format": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "dYMYxR3ZcdZ5tqbs",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "7e18c952-e3f8-41c9-a206-47ddf7ef8abf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "GEjHpvC6saBcTgWy",
+  "tags": []
+}

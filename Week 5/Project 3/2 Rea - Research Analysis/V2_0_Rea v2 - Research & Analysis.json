@@ -1,0 +1,755 @@
+{
+  "name": "Rea v2 - Research & Analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "ca5094b3-a1ac-49b9-873b-5dfa4a505e87",
+      "name": "Get Articles Daily",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -144,
+        -48
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rss-moinland-1",
+              "name": "rss",
+              "type": "array",
+              "value": "=[\n  \"https://sifted.eu/feed/\",\n  \"https://www.deutsche-startups.de/feed/\",\n  \"https://www.eu-startups.com/feed/\",\n  \"https://siliconcanals.com/feed/\"\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4a12adf-c82d-4a5c-ac5c-3512578f4947",
+      "name": "Set Moinland RSS Feeds",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        80,
+        -48
+      ],
+      "typeVersion": 3.4,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "rss",
+        "options": {}
+      },
+      "id": "cc112e1f-8a0c-4f80-bc23-422124018681",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        272,
+        -48
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.rss }}",
+        "options": {
+          "ignoreSSL": true
+        }
+      },
+      "id": "f50735f5-c55e-480d-9df5-79c2325584dc",
+      "name": "Read RSS News Feeds",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "position": [
+        464,
+        -48
+      ],
+      "typeVersion": 1.1,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter out failed RSS items and log which feeds broke.\n// If ALL feeds failed, throw so the error workflow fires.\nconst results = [];\nconst failed = [];\n\nfor (const item of $input.all()) {\n  if (item.json.error) {\n    failed.push({\n      feed: item.json.url || 'unknown',\n      error: item.json.error.message || String(item.json.error)\n    });\n    continue;\n  }\n  if (!item.json.title || !item.json.link) continue;\n  results.push(item);\n}\n\nif (failed.length > 0) {\n  console.log('[Rea] Failed RSS feeds:', JSON.stringify(failed));\n}\n\nif (results.length === 0) {\n  throw new Error('All RSS feeds failed or returned no usable items. Feeds attempted: ' + JSON.stringify(failed));\n}\n\nreturn results;"
+      },
+      "id": "12123cd4-5982-443d-b045-b4e991cc26bd",
+      "name": "Filter Failed Feeds",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        608,
+        -48
+      ],
+      "typeVersion": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "norm-title",
+              "name": "title",
+              "type": "string",
+              "value": "={{ $json.title ?? 'Untitled' }}"
+            },
+            {
+              "id": "norm-content",
+              "name": "content",
+              "type": "string",
+              "value": "={{ $json['content:encodedSnippet'] ?? $json.contentSnippet ?? $json.summary ?? 'No content available' }}"
+            },
+            {
+              "id": "norm-date",
+              "name": "date",
+              "type": "string",
+              "value": "={{ $json.isoDate ?? $json.pubDate ?? $now.toISO() }}"
+            },
+            {
+              "id": "norm-link",
+              "name": "link",
+              "type": "string",
+              "value": "={{ $json.link ?? $json.url ?? '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "088c26cd-370a-43ba-88e9-4d54edbc0013",
+      "name": "Set and Normalize Fields",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        880,
+        -224
+      ],
+      "typeVersion": 3.4,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4c58f0a1-ca27-4681-bc32-7470f5357ce4",
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        1088,
+        96
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "=# {{ $json.title }}\n{{ $json.content }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "title",
+                "value": "={{ $json.title }}"
+              },
+              {
+                "name": "createDate",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "name": "publishDate",
+                "value": "={{ $json.date }}"
+              },
+              {
+                "name": "link",
+                "value": "={{ $json.link }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "8c4de4bc-8388-4190-a064-82beb0657f17",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1168,
+        -64
+      ],
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chunkSize": 3000,
+        "options": {}
+      },
+      "id": "c0bf8a93-ecfb-4c80-83a0-621e70db0f44",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "position": [
+        1312,
+        80
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "moinland-briefing",
+          "mode": "list",
+          "cachedResultName": "moinland-briefing"
+        },
+        "options": {}
+      },
+      "id": "f148d5f2-3cc6-43f7-bc7b-10e6b710ef0f",
+      "name": "Store Articles in Pinecone",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [
+        1136,
+        -224
+      ],
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pineconeApi": {
+          "id": "e1V3KLu5uUsncikF",
+          "name": "Pinecone Moinland"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "briefing@vonaschoff.de",
+        "toEmail": "markus@vonaschoff.de",
+        "subject": "⚠️ Rea Agent — Pinecone storage failed",
+        "html": "=<p><strong>The daily RSS ingestion ran but Pinecone storage failed after 3 retries.</strong></p><p><strong>Error:</strong> {{ $json.error?.message ?? 'Unknown error' }}</p><p><strong>Time:</strong> {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy, HH:mm') }}</p><p>Articles were fetched from RSS but not stored. The Monday briefing may be incomplete. Check the N8N execution log for details.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "d1e922cc-a282-4945-954d-3aaf6e6a0364",
+      "name": "Alert — Pinecone Failed",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [
+        1584,
+        -160
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "b72bd23b-cb47-42ca-a5d8-e84f265a4aa4",
+      "credentials": {
+        "smtp": {
+          "id": "imtJEXYdBnD17Brk",
+          "name": "SMTP Ionos"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "briefing@vonaschoff.de",
+        "toEmail": "markus@vonaschoff.de",
+        "subject": "⚠️ Rea Agent — All RSS feeds failed",
+        "html": "=<p><strong>The daily RSS ingestion failed completely — no articles were fetched from any feed.</strong></p><p><strong>Error:</strong> {{ $json.error?.message ?? 'All feeds returned errors or no usable items' }}</p><p><strong>Time:</strong> {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy, HH:mm') }}</p><p>The Monday briefing will be empty unless feeds recover. Check the N8N execution log.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "90ba1837-6994-45da-b12a-681883d02abf",
+      "name": "Alert — All Feeds Failed",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [
+        816,
+        64
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "523dae2e-dce7-4e95-b475-be7685aaccd1",
+      "credentials": {
+        "smtp": {
+          "id": "imtJEXYdBnD17Brk",
+          "name": "SMTP Ionos"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "ddabf429-f71d-45a7-a37b-ce3fc6389566",
+      "name": "Send Weekly Briefing",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -176,
+        624
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "interests-moinland",
+              "name": "Interests",
+              "type": "string",
+              "value": "startup funding Germany, DACH venture capital, Series A Series B rounds, investor news, VC fund closes, founder exits, PE activity Germany, startup coaching, mental fitness founders, leadership scaling, VC German market analysis"
+            },
+            {
+              "id": "items-count",
+              "name": "Number of news items to include",
+              "type": "string",
+              "value": "8"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "08a8dade-29d1-455d-83e1-721c89d84675",
+      "name": "Moinland Topics of Interest",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        64,
+        624
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Summarize the most relevant startup funding and investor news published in the past 7 days. Today is {{ $now }}",
+        "options": {
+          "systemMessage": "=You are Daniel Kraft's research assistant at Moinland. Daniel is a 5x founder, serial entrepreneur, and coach to startup founders and CEOs in Germany.\n\nYour job: turn the articles from the vector store into a tight Monday morning briefing Daniel can read in 5 minutes and use directly in client conversations.\n\nPrioritize stories related to: {{ $json.Interests }}\n\nWrite the briefing in this exact structure:\n\n**Big rounds this week**\nList the {{ $json['Number of news items to include'] }} most relevant funding rounds. For each: company name, round size, stage, sector, lead investor, and one sentence on why it matters to a founder coach.\n\n**Investor moves**\n2–3 items on new funds raised, partner hires, LP closes, or strategy shifts from active DACH/European investors.\n\n**Market signal**\nONE insight Daniel can use in client conversations this week. Frame it as a founder-relevant truth, not a news headline. Example: 'Seed valuations in German B2B SaaS are compressing — founders raising in Q3 should expect 15–20% lower pre-money than 2023.'\n\n**Founder pulse**\nWhat founders are talking about right now. Concerns, sentiment, emerging topics. 2–3 sentences.\n\nRules:\n- No fluff. No 'it is worth noting that'. No passive voice.\n- Write like a sparring partner, not a journalist.\n- If there is nothing meaningful in a section, write 'Nothing significant this week.'\n- Include the article title and a direct link to the original source for each item.\n- Total length: max 450 words.\n- Avoid duplicate stories."
+        }
+      },
+      "id": "0075a0fc-c900-4a90-8a1b-109ae8e195a0",
+      "name": "Moinland Briefing AI",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        304,
+        560
+      ],
+      "typeVersion": 1.9,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "60141f4b-99f3-494e-881c-06e4a6cbb16f",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        272,
+        784
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "get_funding_news",
+        "toolDescription": "Call this tool to retrieve the latest startup funding and investor news articles from the Moinland Pinecone knowledge base.",
+        "pineconeIndex": {
+          "__rl": true,
+          "mode": "list",
+          "value": "moinland-briefing",
+          "cachedResultName": "moinland-briefing"
+        },
+        "topK": 30,
+        "options": {}
+      },
+      "id": "10d1db6c-2819-4f36-b8d0-4fd1c592ae0c",
+      "name": "Get Funding News from Pinecone",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [
+        416,
+        768
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "pineconeApi": {
+          "id": "e1V3KLu5uUsncikF",
+          "name": "Pinecone Moinland"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d0ba7a07-7c47-4a99-b102-0e0ffed9b16c",
+      "name": "Embeddings OpenAI2",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        624,
+        880
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guard: if AI output is missing or too short, substitute a clear fallback\n// so Markus never receives a blank or broken email.\nconst output = $input.first()?.json?.output ?? '';\n\nif (!output || output.trim().length < 50) {\n  return [{\n    json: {\n      output: '**Rea Briefing — ' + new Date().toLocaleDateString('de-DE') + '**\\n\\n' +\n              'The AI agent could not generate a briefing this week.\\n\\n' +\n              'This is usually caused by an empty Pinecone index (no articles ingested this week) ' +\n              'or a transient OpenAI API error.\\n\\n' +\n              'Please check the N8N execution log for details.'\n    }\n  }];\n}\n\nreturn $input.all();"
+      },
+      "id": "df578094-362c-4599-8b9c-f26c5c892dd3",
+      "name": "Guard — Empty AI Output",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        672,
+        576
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.output }}",
+        "options": {}
+      },
+      "id": "0a292661-5384-478f-970b-fef7d2338fb6",
+      "name": "Convert Response to an Email-Friendly Format",
+      "type": "n8n-nodes-base.markdown",
+      "position": [
+        912,
+        560
+      ],
+      "typeVersion": 1,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "briefing@vonaschoff.de",
+        "toEmail": "markus@vonaschoff.de",
+        "subject": "=Moinland Briefing — {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy') }}",
+        "html": "={{ $json.data ?? $json.html ?? '<p>Briefing could not be formatted. Check N8N execution log.</p>' }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1120,
+        560
+      ],
+      "id": "054c13ef-fb1f-4e42-950b-d7951aeb7766",
+      "name": "Send an Email",
+      "webhookId": "2fa34720-f890-4ab8-8f74-add4d2ed9451",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "smtp": {
+          "id": "imtJEXYdBnD17Brk",
+          "name": "SMTP Ionos"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "briefing@vonaschoff.de",
+        "toEmail": "markus@vonaschoff.de",
+        "subject": "⚠️ Rea Agent — Weekly briefing failed",
+        "html": "=<p><strong>The weekly Rea briefing workflow encountered a fatal error.</strong></p><p><strong>Error:</strong> {{ $json.error?.message ?? 'Unknown error' }}</p><p><strong>Time:</strong> {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy, HH:mm') }}</p><p>The briefing was not sent. Please check the N8N execution log and re-run manually if needed.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "3d0fc4c0-0e7b-480a-9080-6fd55e31492d",
+      "name": "Alert — Weekly Briefing Failed",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [
+        1136,
+        848
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "d6f7bdb9-cdda-4f67-9bc4-e6c597ebae93",
+      "credentials": {
+        "smtp": {
+          "id": "imtJEXYdBnD17Brk",
+          "name": "SMTP Ionos"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Articles Daily": {
+      "main": [
+        [
+          {
+            "node": "Set Moinland RSS Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Moinland RSS Feeds": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Read RSS News Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read RSS News Feeds": {
+      "main": [
+        [
+          {
+            "node": "Filter Failed Feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Failed Feeds": {
+      "main": [
+        [
+          {
+            "node": "Set and Normalize Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert — All Feeds Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set and Normalize Fields": {
+      "main": [
+        [
+          {
+            "node": "Store Articles in Pinecone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store Articles in Pinecone",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store Articles in Pinecone",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Articles in Pinecone": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Alert — Pinecone Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Weekly Briefing": {
+      "main": [
+        [
+          {
+            "node": "Moinland Topics of Interest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moinland Topics of Interest": {
+      "main": [
+        [
+          {
+            "node": "Moinland Briefing AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Moinland Briefing AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Funding News from Pinecone": {
+      "ai_tool": [
+        [
+          {
+            "node": "Moinland Briefing AI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Get Funding News from Pinecone",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Moinland Briefing AI": {
+      "main": [
+        [
+          {
+            "node": "Guard — Empty AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert — Weekly Briefing Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard — Empty AI Output": {
+      "main": [
+        [
+          {
+            "node": "Convert Response to an Email-Friendly Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Response to an Email-Friendly Format": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Alert — Weekly Briefing Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "6b8aa9a9-ba69-4d0a-bac4-6fb83c0ff7ad",
+  "meta": {
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "9uyaDtrCpB8WHluD",
+  "tags": []
+}

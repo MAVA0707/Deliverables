@@ -1,0 +1,1019 @@
+{
+  "name": "Cal v1 - Coaching to LinkedIn",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "15aoRrQ9mN8Pbk5Z-DFb7sIVPyxLlBomP",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "caf900b1-cf7a-49c8-9584-93ae3f4d9c8e",
+      "name": "Google Drive — New Granola Session",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "position": [
+        592,
+        160
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "u8ffazet8WJsPPhl",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "13e58c3a-be89-47d3-8a28-56d7facf125b",
+      "name": "Download Session File",
+      "type": "n8n-nodes-base.googleDrive",
+      "position": [
+        848,
+        160
+      ],
+      "typeVersion": 3,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "u8ffazet8WJsPPhl",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=#################################\n\n🚨 Agent Cal — Google Drive file download failed.\n\nFile ID: {{ $('Google Drive — New Granola Session').item.json.id ?? 'unknown' }}\nError: {{ $json.error?.message ?? 'Unknown' }}\nTime: {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy, HH:mm') }}\n\nCheck Google Drive OAuth credentials in N8N.\n\n#################################",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "54f3ae4c-2f29-4c9e-aea1-8fafeea7c895",
+      "name": "Telegram — Drive Error",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1200,
+        -80
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "245e9620-82ca-4935-a8cb-fd091f4cd87a",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Session Text\n// Expects input from: Extract From File (Text) node\n// $json.data contains the plain text string when Extract From File runs correctly.\n// Falls back through binary decode and raw JSON for resilience.\n\nconst item = $input.first();\nlet rawText = '';\nlet extractionMethod = '';\n\n// Path 1 — Extract From File node ran correctly (recommended setup)\n// Text lands in $json.data as a plain string\nif (typeof item.json?.data === 'string' && item.json.data.trim().length > 0) {\n  rawText = item.json.data;\n  extractionMethod = 'json.data (Extract From File)';\n}\n\n// Path 2 — Binary data still present (Extract From File skipped or misconfigured)\n// Drive downloads .md as binary under field name 'data'\nelse if (item.binary?.data?.data) {\n  rawText = Buffer.from(item.binary.data.data, 'base64').toString('utf-8');\n  extractionMethod = 'binary.data.data (base64 decode)';\n}\n\n// Path 3 — Binary present under a different field name\n// Check all binary fields and use the first one with content\nelse if (item.binary && Object.keys(item.binary).length > 0) {\n  const binaryField = Object.keys(item.binary)[0];\n  const binaryData = item.binary[binaryField];\n  if (binaryData?.data) {\n    rawText = Buffer.from(binaryData.data, 'base64').toString('utf-8');\n    extractionMethod = `binary.${binaryField} (base64 decode, field auto-detected)`;\n  }\n}\n\n// Path 4 — Text arrived directly as a JSON string (edge case)\nelse if (typeof item.json === 'string') {\n  rawText = item.json;\n  extractionMethod = 'raw json string';\n}\n\n// Log which path was used — visible in N8N execution output\nconsole.log(`[Extract Session Text] Method: ${extractionMethod}`);\nconsole.log(`[Extract Session Text] Raw text length: ${rawText.length} chars`);\n\n// Trim and validate\nrawText = rawText.trim();\n\nif (!rawText || rawText.length < 50) {\n  console.log('[Extract Session Text] DEBUG item.json keys:', Object.keys(item.json ?? {}));\n  console.log('[Extract Session Text] DEBUG item.binary keys:', Object.keys(item.binary ?? {}));\n  throw new Error(\n    `Session file appears empty or too short (${rawText.length} chars). ` +\n    `Extraction method attempted: ${extractionMethod || 'none — all paths failed'}. ` +\n    `File ID: ${item.json?.id ?? item.json?.fileId ?? 'unknown'}. ` +\n    `Check that Extract From File node is placed before this node and ` +\n    `its Input Binary Field is set to \"data\".`\n  );\n}\n\n// Parse structure from Granola Markdown\n// Granola uses the meeting title as the first H1 line\nconst lines = rawText.split('\\n').filter(l => l.trim().length > 0);\nconst title = lines[0].replace(/^#+\\s*/, '').trim() || 'Untitled Session';\n\n// Body lines: skip headings for the topic snippet\nconst bodyLines = lines.slice(1).filter(l => !l.startsWith('#') && l.trim().length > 10);\nconst topicSnippet = bodyLines.slice(0, 5).join(' ').substring(0, 600).trim();\n\n// Extract any attendees Granola lists (usually \"Attendees: Name, Name\")\nconst attendeesLine = lines.find(l => /attendees?:/i.test(l)) ?? '';\nconst attendees = attendeesLine.replace(/attendees?:\\s*/i, '').trim();\n\n// Extract date from Granola header if present (format: \"Mon 12 May 2025\" or ISO)\nconst dateLine = lines.find(l => /\\d{4}-\\d{2}-\\d{2}|\\d{1,2}\\s+\\w+\\s+\\d{4}/.test(l)) ?? '';\nconst sessionDate = dateLine.trim() || new Date().toISOString();\n\nconsole.log(`[Extract Session Text] Title: \"${title}\"`);\nconsole.log(`[Extract Session Text] Topic snippet (first 100 chars): \"${topicSnippet.substring(0, 100)}\"`);\n\nreturn [{\n  json: {\n    sessionTitle: title,\n    sessionText: rawText,\n    topicSnippet: topicSnippet,\n    attendees: attendees,\n    sessionDate: sessionDate,\n    fileId: item.json?.id ?? item.json?.fileId ?? '',\n    fileName: item.json?.name ?? title,\n    charCount: rawText.length,\n    extractionMethod: extractionMethod\n  }\n}];"
+      },
+      "id": "159d956f-5a27-41fc-93a0-86d99cae4d5b",
+      "name": "Extract Session Text",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1184,
+        160
+      ],
+      "typeVersion": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=#################################\n\n📄 Agent Cal: New Coaching transcript detected: *{{ $json.sessionTitle }}*\n\nStoring in Pinecone and identifying best LinkedIn topic...\n\n#################################",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "1baf8f8e-a9f4-49be-ba1c-7cd4671f2bc1",
+      "name": "Telegram — Session Detected",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1392,
+        144
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "797a5281-beac-452f-bf37-b62e67a6a7f0",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "norm-title",
+              "name": "title",
+              "type": "string",
+              "value": "={{ $('Extract Session Text').item.json.sessionTitle ?? 'Untitled Session' }}"
+            },
+            {
+              "id": "norm-content",
+              "name": "content",
+              "type": "string",
+              "value": "={{ $('Extract Session Text').item.json.sessionText ?? '' }}"
+            },
+            {
+              "id": "norm-date",
+              "name": "date",
+              "type": "string",
+              "value": "={{ $('Extract Session Text').item.json.sessionDate ?? $now.toISO() }}"
+            },
+            {
+              "id": "norm-link",
+              "name": "link",
+              "type": "string",
+              "value": "=https://drive.google.com/file/d/{{ $('Extract Session Text').item.json.fileId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1d8a7720-7f13-40e8-bd75-a21002bbe1a1",
+      "name": "Normalize Session Fields",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1600,
+        144
+      ],
+      "typeVersion": 3.4,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "moinland-coaching",
+          "mode": "list",
+          "cachedResultName": "moinland-coaching"
+        },
+        "options": {}
+      },
+      "id": "aec17ade-1221-4a56-8a6f-b2157b80d4a2",
+      "name": "Store Session in Pinecone",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [
+        1792,
+        144
+      ],
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pineconeApi": {
+          "id": "e1V3KLu5uUsncikF",
+          "name": "Pinecone Moinland"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "780ad99e-16e5-4c9b-a17e-cc97a78571be",
+      "name": "Embeddings OpenAI — Insert",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        1776,
+        -64
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "=# {{ $json.title }}\n{{ $json.content }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "title",
+                "value": "={{ $json.title }}"
+              },
+              {
+                "name": "createDate",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "name": "sessionDate",
+                "value": "={{ $json.date }}"
+              },
+              {
+                "name": "link",
+                "value": "={{ $json.link }}"
+              },
+              {
+                "name": "source",
+                "value": "granola-coaching-session"
+              }
+            ]
+          }
+        }
+      },
+      "id": "826e8d7b-1bad-4077-af61-d8f3c5c2c697",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "position": [
+        1952,
+        -64
+      ],
+      "typeVersion": 1,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chunkSize": 2000,
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "id": "27246306-803a-493d-8555-4a6746ef0a3b",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "position": [
+        2256,
+        64
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "query_coaching_sessions",
+        "toolDescription": "Query the Moinland coaching session memory in Pinecone. Use it to retrieve the most relevant chunks from the current and past sessions to identify recurring themes and strong topics.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "moinland-coaching",
+          "mode": "list",
+          "cachedResultName": "moinland-coaching"
+        },
+        "topK": 15,
+        "options": {}
+      },
+      "id": "9beedef0-ea53-4627-9f9a-d3048f29dbf4",
+      "name": "Query Pinecone — Coaching Sessions",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "position": [
+        560,
+        640
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "pineconeApi": {
+          "id": "e1V3KLu5uUsncikF",
+          "name": "Pinecone Moinland"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "f808fcb4-e8fc-427a-8f3a-19d541f7cb7c",
+      "name": "Embeddings OpenAI — Query",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "position": [
+        560,
+        816
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Topic JSON\n// Receives output from: Identify Best LinkedIn Topic (Agent node)\n// Agent node returns output as $json.output (string)\n\nlet raw = '';\n\ntry {\n  const item = $input.first();\n\n  // Agent node output paths — try each in order\n  if (typeof item?.json?.output === 'string') {\n    raw = item.json.output;\n  } else if (typeof item?.json?.output === 'object' && item?.json?.output !== null) {\n    raw = JSON.stringify(item.json.output);\n  } else if (typeof item?.json?.text === 'string') {\n    raw = item.json.text;\n  } else {\n    // Last resort — stringify the whole json to see what arrived\n    raw = JSON.stringify(item?.json ?? {});\n  }\n} catch (e) {\n  throw new Error('Parse Topic JSON — could not read input: ' + e.message);\n}\n\n// Log raw output for debugging in N8N execution view\nconsole.log('[Parse Topic] Raw output length:', raw.length);\nconsole.log('[Parse Topic] Raw output preview:', raw.substring(0, 300));\n\n// Strip markdown code fences if present (```json ... ```)\nconst cleaned = raw\n  .replace(/^```json\\s*/i, '')\n  .replace(/^```\\s*/i, '')\n  .replace(/```\\s*$/i, '')\n  .trim();\n\n// Find the JSON object — handles cases where agent adds text before/after\nconst jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n\nlet parsed = null;\n\nif (jsonMatch) {\n  try {\n    parsed = JSON.parse(jsonMatch[0]);\n  } catch (e) {\n    console.log('[Parse Topic] JSON.parse failed:', e.message);\n    console.log('[Parse Topic] Attempted to parse:', jsonMatch[0].substring(0, 300));\n    parsed = null;\n  }\n}\n\n// Fallback: build a safe object from whatever the agent returned\nif (!parsed || typeof parsed !== 'object') {\n  console.log('[Parse Topic] Using fallback — could not parse JSON from agent output');\n  parsed = {\n    topic: raw.substring(0, 120).trim() || 'Coaching session insight',\n    angle: 'Drawn from real coaching experience',\n    targetEmotion: 'recognition',\n    searchQuery: 'startup founder leadership Germany DACH',\n    whyNow: 'Based on recent coaching session'\n  };\n}\n\n// Sanitise each field — guarantee strings, never undefined\nconst sanitize = (val, fallback) => \n  (typeof val === 'string' && val.trim().length > 3) ? val.trim() : fallback;\n\nreturn [{\n  json: {\n    topic:         sanitize(parsed.topic,         'Coaching session insight'),\n    angle:         sanitize(parsed.angle,          'Drawn from real coaching experience'),\n    targetEmotion: sanitize(parsed.targetEmotion,  'recognition'),\n    searchQuery:   sanitize(parsed.searchQuery,    'startup founder leadership Germany'),\n    whyNow:        sanitize(parsed.whyNow,         'Relevant for founders right now'),\n    rawOutput:     raw.substring(0, 500)\n  }\n}];"
+      },
+      "id": "50c3e799-b838-498f-84d4-ef1640431d19",
+      "name": "Parse Topic JSON",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        864,
+        608
+      ],
+      "typeVersion": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80fa-9908-c2a15b84d136",
+          "mode": "list",
+          "cachedResultName": "Moinland Knowledge Base",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580fa9908c2a15b84d136"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Type|select",
+              "condition": "equals",
+              "selectValue": "Brand Voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dae3603a-e6d2-4ff6-aa4f-7a25e452f445",
+      "name": "Get Brand Voice",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        1088,
+        848
+      ],
+      "typeVersion": 2.2,
+      "retryOnFail": true,
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "361641dc-4875-80fa-9908-c2a15b84d136",
+          "mode": "list",
+          "cachedResultName": "Moinland Knowledge Base",
+          "cachedResultUrl": "https://www.notion.so/361641dc487580fa9908c2a15b84d136"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Type|select",
+              "condition": "equals",
+              "selectValue": "Example Post"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "875f14ee-6051-4e94-99e4-56457c6eedec",
+      "name": "Get Example Posts",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        1328,
+        848
+      ],
+      "typeVersion": 2.2,
+      "retryOnFail": true,
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{ $('Parse Topic JSON').item.json.searchQuery }}",
+        "options": {}
+      },
+      "id": "03d651a2-dcb8-41b9-ad63-16efc41cae78",
+      "name": "Search in Tavily",
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "position": [
+        1776,
+        1008
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "tavilyApi": {
+          "id": "WJkd68ezdwHSRgDA",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=You are a senior LinkedIn content strategist for Moinland. Your job is to produce a structured content BRIEF (not the post itself) that a writer will use to draft a LinkedIn post.\n\nThink step by step based on the topic analysis provided:\n1. What is the single 'aha' insight this post must deliver?\n2. Who exactly is the reader, and what state of mind are they in when they scroll past?\n3. What hook style will stop them (contrarian claim, surprising stat, vivid story, sharp question)?\n4. What supporting evidence or data points back this up? Use the web search results.\n5. What is the one specific takeaway action or mindset shift for a founder?\n6. What is the CTA (soft — invitation to think, comment, or DM — NEVER 'book a call')?\n\nTarget ICP: Startup founders and CEOs at growth-stage companies in Germany and the DACH region, 2-10 years in, dealing with scaling, team, and leadership challenges."
+            },
+            {
+              "content": "=Create a content brief for this LinkedIn post topic:\n\nTopic: {{ $('Parse Topic JSON').item.json.topic }}\nAngle: {{ $('Parse Topic JSON').item.json.angle }}\nTarget emotion: {{ $('Parse Topic JSON').item.json.targetEmotion }}\nWhy now: {{ $('Parse Topic JSON').item.json.whyNow }}\n\nOriginating from coaching session: {{ $('Parse Topic JSON').item.json.sessionTitle }}\n\nSearch for 2-5 data points that resonate for the target ICP. Prioritise German and European startup statistics where possible."
+            }
+          ]
+        },
+        "builtInTools": {
+          "webSearch": {
+            "searchContextSize": "medium"
+          }
+        },
+        "options": {}
+      },
+      "id": "b933123e-efbf-41d7-9842-d3c6b1b326b5",
+      "name": "Research and Content Brief",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1568,
+        848
+      ],
+      "typeVersion": 2.3,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are writing a LinkedIn post as Daniel Kraft, CEO of Moinland — a coaching firm for tech startup founders in Germany.\n\nThe post must feel like it comes directly from Daniel's personal experience as a 5x founder and coach — not from a content agency.\n\n=== BRAND VOICE (non-negotiable) ===\n{{ $('Get Brand Voice').item.json.property_content }}\n\n=== POST STRUCTURE RULES ===\n- Hook: first 1-2 lines must stop the scroll (no 'In today's world...' openers — be challenging and contrarian)\n- Body: 3-5 short paragraphs, 1-2 sentences each\n- Use line breaks liberally — LinkedIn rewards whitespace\n- Ground the post in a REAL insight from the coaching session — this is lived experience, not theory\n- Include at least ONE concrete data point from the research brief\n- Specificity over abstraction (numbers, named situations, concrete examples)\n- NO emojis unless one is genuinely earned\n- NO hashtag spam — max 3 hashtags at the end, only if they add discovery value\n- NO motivational closers ('You got this!' 'Keep grinding')\n- CTA: soft invitation to reflect or reply — never a sales pitch\n- Length: 150-250 words"
+            },
+            {
+              "content": "=Read these example posts to calibrate Daniel's writing style:\n{{ $json.property_content }}\n\nNow create one LinkedIn post based on this content brief:\n{{ $('Research and Content Brief').item.json.output[0].content[0].text }}\n\nThe core topic is: {{ $('Parse Topic JSON').item.json.topic }}\nThe angle: {{ $('Parse Topic JSON').item.json.angle }}\nThis originates from a real coaching session: '{{ $('Parse Topic JSON').item.json.sessionTitle }}'\n\nWrite as Daniel Kraft — first person, founder voice, no buzzwords.\n\nReturn ONLY the final post text. No JSON, no markdown headings, no commentary."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "06ccafe9-448f-4ef9-b5b3-51dd1960dd1d",
+      "name": "Create LinkedIn Post",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1888,
+        848
+      ],
+      "typeVersion": 2.3,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guard — Empty Post Output\n// Only reads from $input — no external node references in sandbox\n\nlet postText = '';\n\ntry {\n  const item = $input.first();\n\n  // Create LinkedIn Post (OpenAI node) returns output in different shapes\n  // Try each path in order\n  if (typeof item?.json?.output === 'string') {\n    postText = item.json.output;\n  } else if (Array.isArray(item?.json?.output)) {\n    // OpenAI node: output[0].content[0].text\n    postText = item?.json?.output?.[0]?.content?.[0]?.text ?? '';\n  } else if (typeof item?.json?.text === 'string') {\n    postText = item.json.text;\n  } else if (typeof item?.json?.message?.content === 'string') {\n    postText = item.json.message.content;\n  }\n} catch (e) {\n  throw new Error('Guard — could not read input from Create LinkedIn Post: ' + e.message);\n}\n\npostText = postText.trim();\n\nconsole.log('[Guard] Post text length:', postText.length);\nconsole.log('[Guard] Post preview:', postText.substring(0, 150));\n\nif (!postText || postText.length < 30) {\n  throw new Error(\n    'LinkedIn post is empty or too short (' + postText.length + ' chars). ' +\n    'Check the Create LinkedIn Post node output in the execution log.'\n  );\n}\n\nreturn [{\n  json: {\n    postText: postText\n  }\n}];"
+      },
+      "id": "830e0f1f-68d4-4d7c-9a01-f18740c78f98",
+      "name": "Guard — Empty Post Output",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2240,
+        832
+      ],
+      "typeVersion": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "35f641dc48758087a744fcb84e915175",
+          "mode": "id"
+        },
+        "title": "={{ $('Parse Topic JSON').item.json.topic }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Content|rich_text",
+              "textContent": "={{ $json.postText }}"
+            },
+            {
+              "key": "Requested by|rich_text",
+              "textContent": "Agent Colin"
+            },
+            {
+              "key": "Created|date",
+              "includeTime": false,
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Draft"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "486c6d45-2ade-4cc9-b44c-f250ec9db3d0",
+      "name": "Notion — Create Draft",
+      "type": "n8n-nodes-base.notion",
+      "position": [
+        2432,
+        816
+      ],
+      "typeVersion": 2.2,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=#################################\n\n✅ Agent Cal: LinkedIn draft ready.\n\n*Session:* {{ $('Parse Topic JSON').item.json.sessionTitle }}\n*Topic:* {{ $('Parse Topic JSON').item.json.topic }}\n\nOpen in Notion: {{ $json.url }}\n\n#################################",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "0a1a78fa-55bf-4cd3-9f5a-66229f25d76a",
+      "name": "Telegram — Success",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        2688,
+        816
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "b3df46db-6e07-4f9c-8df3-02ccdef84632",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=#################################\n\n🚨 Agent Cal failed.\n\nSession: {{ $('Extract Session Text').item.json.sessionTitle ?? 'unknown' }}\nError: {{ $json.error?.message ?? 'Unknown error' }}\nNode: {{ $json.error?.node?.name ?? 'unknown' }}\nTime: {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy, HH:mm') }}\n\n#################################",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "04cee5e8-bce9-4656-a962-cf7a16b434a4",
+      "name": "Telegram — Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        2560,
+        464
+      ],
+      "typeVersion": 1.2,
+      "webhookId": "364aef67-fca3-465a-a487-c3b1888e6dd0",
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1008,
+        160
+      ],
+      "id": "62001e23-c3fb-4313-ad3b-d8ec6aeb52ae",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Analyse this coaching session and identify the best LinkedIn topic. Session title: ' + $('Extract Session Text').item.json.sessionTitle + '\\\\n\\\\nTranscript:\\\\n' + $('Extract Session Text').item.json.sessionText }}",
+        "options": {
+          "systemMessage": "You are a content strategist for Moinland, a founder coaching company in Germany.\n\nYour job: read the coaching session transcript below and identify the SINGLE strongest topic for a LinkedIn post.\n\nThe ideal topic:\n- Contains a non-obvious, counter-intuitive insight that experienced founders would recognise as true\n- Is specific enough to be grounded in real coaching experience — not a generic leadership tip\n- Has emotional resonance for startup founders and CEOs at growth-stage companies\n- Can be supported by external data points (statistics, research, market trends)\n- Has not been obviously overposted on LinkedIn already\n\nQuery the coaching session memory to check if this topic has been covered in recent sessions — if so, look for a fresh angle or a different topic.\n\nReturn a JSON object with exactly these fields:\n{\n  \"topic\": \"one sentence describing the core topic\",\n  \"angle\": \"the specific counter-intuitive angle or insight\",\n  \"targetEmotion\": \"the emotional state of the reader this post should trigger\",\n  \"searchQuery\": \"a 5-10 word search query for Tavily to find supporting data points\",\n  \"whyNow\": \"one sentence on why this topic is relevant for founders right now\"\n}\n\nReturn ONLY valid JSON. No markdown, no commentary."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        544,
+        416
+      ],
+      "id": "81a54614-0613-466d-87c4-dadf414d626b",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        704
+      ],
+      "id": "7d44d620-bf3d-4ec6-a51b-092f3e82f60a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive — New Granola Session": {
+      "main": [
+        [
+          {
+            "node": "Download Session File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Session File": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Drive Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Session Text": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Session Detected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram — Session Detected": {
+      "main": [
+        [
+          {
+            "node": "Normalize Session Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Session Fields": {
+      "main": [
+        [
+          {
+            "node": "Store Session in Pinecone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI — Insert": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Store Session in Pinecone",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Store Session in Pinecone",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Session in Pinecone": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pinecone — Coaching Sessions": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI — Query": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Query Pinecone — Coaching Sessions",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Topic JSON": {
+      "main": [
+        [
+          {
+            "node": "Get Brand Voice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Brand Voice": {
+      "main": [
+        [
+          {
+            "node": "Get Example Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Example Posts": {
+      "main": [
+        [
+          {
+            "node": "Research and Content Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research and Content Brief",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research and Content Brief": {
+      "main": [
+        [
+          {
+            "node": "Create LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Guard — Empty Post Output",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard — Empty Post Output": {
+      "main": [
+        [
+          {
+            "node": "Notion — Create Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion — Create Draft": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram — Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Extract Session Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Topic JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9f0b0859-0423-4585-9086-95c160f63465",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "FJBgzEKQsGHQ5W1a",
+  "tags": []
+}
