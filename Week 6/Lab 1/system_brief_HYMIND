@@ -1,0 +1,79 @@
+# System Brief — HYMIND
+
+## System Description
+
+HYMIND is an AI assisted market intelligence system focused on the hydrogen and fuel cell industry.
+
+The system collects public information from multiple sources including RSS feeds, APIs, and selected web pages. The collected information is filtered, processed, and summarized into structured executive reports using large language models.
+
+The goal of the system is to reduce manual research effort and provide faster visibility into relevant market developments, company activities, technology updates, and industry trends.
+
+---
+
+## Inputs
+
+The system processes:
+
+- Public RSS feed content
+- Public news API results
+- Public web pages collected through crawling
+- Search engine results
+- User defined search topics and keywords
+
+The system currently does not intentionally process sensitive personal data or biometric information.
+
+Limited personal data may incidentally appear in public articles, such as company spokesperson names or author names.
+
+---
+
+## Outputs
+
+The system generates:
+
+- Executive style markdown reports
+- AI generated summaries
+- Trend overviews
+- Structured market intelligence updates
+- Notifications and report distributions through automation workflows
+
+The outputs are informational recommendations and summaries only.
+
+The system does not make automated business decisions.
+
+---
+
+## Affected Parties
+
+The primary affected parties are:
+
+- Internal business users
+- Product managers
+- Engineering teams
+- Strategy stakeholders
+- Market analysts
+
+The generated outputs may influence internal strategic discussions but are not directly used for legally binding decisions.
+
+---
+
+## Human Review
+
+Human review exists before reports are distributed or operational actions are taken.
+
+Users are expected to validate important findings manually before using them for strategic or commercial decisions.
+
+The system currently does not enforce mandatory review workflows technically.
+
+---
+
+## Development and Ownership
+
+The system was developed as a custom AI project by the project team using Python, LangGraph, n8n, Pinecone, and OpenAI APIs.
+
+The system integrates third-party AI services for language generation and embeddings.
+
+---
+
+## Production Usage
+
+If deployed in production, the system would likely be used by internal company staff for market intelligence and research support workflows.
