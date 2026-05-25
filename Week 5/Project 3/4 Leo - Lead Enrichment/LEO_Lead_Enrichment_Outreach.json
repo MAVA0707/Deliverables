@@ -1,0 +1,424 @@
+{
+  "name": "LEO — Lead Enrichment & Outreach",
+  "nodes": [
+
+    {
+      "parameters": {
+        "content": "## LEO — Lead Enrichment & Outreach\n\nBuilt for Daniel Kraft, CEO of Moinland.\n\n**How it works:**\n1. A new lead is added to the Notion CRM with Status = 'New Lead'\n2. Notion trigger fires automatically\n3. LEO extracts the lead's name, company, and LinkedIn URL from the Notion page\n4. Telegram acknowledgement sent to Daniel\n5. AI Agent (GPT-4o-mini + Tavily) researches the lead:\n   - LinkedIn profile and background\n   - Company stage, funding history, headcount\n   - Recent news and posts\n   - Likely challenges based on company stage\n6. GPT-4o-mini generates a structured enrichment profile:\n   - Background summary\n   - Company intelligence\n   - Likely pain points relevant to Moinland coaching\n   - 3 conversation hooks for the intro call\n   - Suggested outreach message in Daniel's voice\n7. Notion lead page updated with enrichment data\n8. Telegram alert with full summary + suggested opener\n\n**Notion CRM setup required:**\nCreate a database with these fields:\n- Name (title)\n- Company (text)\n- LinkedIn URL (url)\n- Email (email)\n- Status (select): New Lead | Enriched | In Conversation | Proposal Sent | Active Client | Stalled | Closed\n- Stage (select): Pre-seed | Seed | Series A | Series B | Growth | Unknown\n- Source (select): LinkedIn | Referral | Event | Inbound | Other\n- Enrichment (rich_text) — LEO writes here\n- Conversation Hooks (rich_text) — LEO writes here\n- Outreach Draft (rich_text) — LEO writes here\n- Last Updated (date)\n- Notes (rich_text)\n\n**Credentials needed:**\n- Notion account (existing: y9y9oXAKwbaEbAUZ)\n- OpenAI account 2 (existing: MvDgIolFQ0CkZy93)\n- Tavily account (existing: WJkd68ezdwHSRgDA)\n- Telegram account 2 (existing: JoAeGUPLgB1pu101)",
+        "height": 1060,
+        "width": 460
+      },
+      "id": "sticky-intro",
+      "name": "Sticky Note — Intro",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-700, -560],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "content": "## Step 1 — Detect new lead in Notion CRM\n\nFires when Status = 'New Lead' is set on any CRM page.\nReplace REPLACE_WITH_YOUR_CRM_DATABASE_ID with your Notion CRM database ID.",
+        "height": 220,
+        "width": 560,
+        "color": 7
+      },
+      "id": "sticky-step1",
+      "name": "Sticky Note — Step 1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-160, -560],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "content": "## Step 2 — Research lead with Tavily\n\nAI Agent queries Tavily for:\n- LinkedIn profile\n- Company funding and stage\n- Recent news\n- Founder background",
+        "height": 220,
+        "width": 560,
+        "color": 7
+      },
+      "id": "sticky-step2",
+      "name": "Sticky Note — Step 2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-160, -240],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "content": "## Step 3 — Generate enrichment + outreach\n\nGPT-4o-mini builds enrichment profile,\nconversation hooks, and outreach message.\nAll written to Notion + sent to Telegram.",
+        "height": 220,
+        "width": 560,
+        "color": 7
+      },
+      "id": "sticky-step3",
+      "name": "Sticky Note — Step 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-160, 80],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "content": "### Edit this:\nReplace REPLACE_WITH_YOUR_CRM_DATABASE_ID\nwith your Notion CRM database ID.\n\nThe trigger watches for pages where\nStatus = 'New Lead'.",
+        "height": 200,
+        "width": 260,
+        "color": 3
+      },
+      "id": "sticky-crmhint",
+      "name": "Sticky Note — CRM Hint",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [460, -560],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "content": "### Error handling:\nAll critical nodes have retryOnFail or onError.\nFatal errors send Telegram alert to Daniel.\nError Trigger catches anything else.",
+        "height": 160,
+        "width": 280,
+        "color": 2
+      },
+      "id": "sticky-errors",
+      "name": "Sticky Note — Errors",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [460, -320],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "event": "pageUpdated",
+        "simplifyOutput": true,
+        "databaseId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_CRM_DATABASE_ID",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|select",
+              "condition": "equals",
+              "selectValue": "New Lead"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notion-trigger",
+      "name": "Notion CRM — New Lead",
+      "type": "n8n-nodes-base.notionTrigger",
+      "position": [-140, -400],
+      "typeVersion": 1,
+      "webhookId": "leo-notion-crm-trigger",
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// Extract lead fields from the Notion trigger payload.\n// Handles both simplified and raw Notion page objects.\nconst item = $input.first();\nconst props = item.json?.properties ?? item.json ?? {};\n\nconst getText = (prop) => {\n  if (!prop) return '';\n  if (typeof prop === 'string') return prop;\n  if (prop.title?.[0]?.plain_text) return prop.title[0].plain_text;\n  if (prop.rich_text?.[0]?.plain_text) return prop.rich_text[0].plain_text;\n  if (prop.text?.[0]?.plain_text) return prop.text[0].plain_text;\n  if (prop.url) return prop.url;\n  if (prop.email) return prop.email;\n  if (prop.select?.name) return prop.select.name;\n  if (prop.formula?.string) return prop.formula.string;\n  return '';\n};\n\nconst name    = getText(props['Name']    ?? props['name'])    || 'Unknown';\nconst company = getText(props['Company'] ?? props['company']) || 'Unknown';\nconst linkedin= getText(props['LinkedIn URL'] ?? props['LinkedIn'] ?? props['linkedin_url']) || '';\nconst email   = getText(props['Email']   ?? props['email'])   || '';\nconst stage   = getText(props['Stage']   ?? props['stage'])   || 'Unknown';\nconst source  = getText(props['Source']  ?? props['source'])  || 'Unknown';\nconst notes   = getText(props['Notes']   ?? props['notes'])   || '';\nconst pageId  = item.json?.id ?? '';\nconst pageUrl = item.json?.url ?? '';\n\nconsole.log('[LEO] New lead detected:', name, '@', company);\n\nif (name === 'Unknown' && company === 'Unknown') {\n  throw new Error('Lead page has no Name or Company. Check Notion CRM database fields match the expected names.');\n}\n\nreturn [{ json: { name, company, linkedin, email, stage, source, notes, pageId, pageUrl } }];"
+      },
+      "id": "extract-lead",
+      "name": "Extract Lead Fields",
+      "type": "n8n-nodes-base.code",
+      "position": [100, -400],
+      "typeVersion": 2,
+      "onError": "continueErrorOutput"
+    },
+
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=🔍 New lead detected: *{{ $json.name }}* @ {{ $json.company }}\n\nStage: {{ $json.stage }} | Source: {{ $json.source }}\n\nResearching now...",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-ack",
+      "name": "Telegram — Lead Detected",
+      "type": "n8n-nodes-base.telegram",
+      "position": [340, -400],
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Research this lead thoroughly. Name: ' + $('Extract Lead Fields').item.json.name + '. Company: ' + $('Extract Lead Fields').item.json.company + '. LinkedIn: ' + $('Extract Lead Fields').item.json.linkedin + '. Stage: ' + $('Extract Lead Fields').item.json.stage + '. Notes: ' + $('Extract Lead Fields').item.json.notes }}",
+        "options": {
+          "systemMessage": "=You are LEO, a lead intelligence agent for Moinland — a founder coaching firm in Germany led by Daniel Kraft, a 5x serial entrepreneur.\n\nYour job: research a lead thoroughly so Daniel walks into every intro call already knowing who he is talking to.\n\nUse the search tool to find:\n1. LinkedIn profile: current role, background, previous companies, education\n2. Company intelligence: stage, funding history, headcount, recent news, product focus\n3. Founder background: how long they have been at this company, previous exits or failures\n4. Recent public activity: LinkedIn posts, interviews, press mentions in last 90 days\n5. Likely challenges: based on company stage and sector, what problems is this founder probably facing right now?\n\nSearch multiple times with different queries to build a complete picture. Always search for:\n- '{name} {company}'\n- '{company} funding'\n- '{name} LinkedIn'\n- '{company} Germany startup' (if German company)\n\nThen return a JSON object with exactly these fields:\n{\n  \"backgroundSummary\": \"2-3 sentences on who this person is and their journey\",\n  \"companyIntel\": \"2-3 sentences on the company: stage, funding, product, traction signals\",\n  \"likelyPainPoints\": [\"pain point 1\", \"pain point 2\", \"pain point 3\"],\n  \"conversationHooks\": [\"hook 1 — specific reference to something real\", \"hook 2\", \"hook 3\"],\n  \"outreachMessage\": \"A short, direct outreach message (4-6 sentences) in Daniel Kraft's voice — founder-to-founder, no corporate language, no 'I hope this finds you well', references something specific about their journey, ends with a soft open question, NOT a calendar link\",\n  \"researchConfidence\": \"high|medium|low\",\n  \"sourcesFound\": [\"url1\", \"url2\"]\n}\n\nReturn ONLY valid JSON. No markdown, no commentary, no code fences."
+        }
+      },
+      "id": "research-agent",
+      "name": "LEO Research Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [580, -400],
+      "typeVersion": 1.9,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 8000,
+      "onError": "continueErrorOutput"
+    },
+
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [548, -560],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "MvDgIolFQ0CkZy93",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "query": "={{ $('Extract Lead Fields').item.json.name + ' ' + $('Extract Lead Fields').item.json.company }}",
+        "options": {
+          "searchDepth": "advanced",
+          "maxResults": 8
+        }
+      },
+      "id": "tavily-tool",
+      "name": "Tavily Search",
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "position": [724, -560],
+      "typeVersion": 1,
+      "credentials": {
+        "tavilyApi": {
+          "id": "WJkd68ezdwHSRgDA",
+          "name": "Tavily account"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "jsCode": "// Parse the research JSON from the agent and validate all fields.\n// Falls back gracefully with a partial profile if JSON is malformed.\nconst item = $input.first();\nlet raw = '';\n\nif (typeof item?.json?.output === 'string') {\n  raw = item.json.output;\n} else if (Array.isArray(item?.json?.output)) {\n  raw = item.json.output?.[0]?.content?.[0]?.text ?? '';\n} else {\n  raw = JSON.stringify(item?.json ?? {});\n}\n\nconsole.log('[LEO] Raw agent output length:', raw.length);\nconsole.log('[LEO] Raw preview:', raw.substring(0, 200));\n\nconst cleaned = raw.replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/```\\s*$/i, '').trim();\nconst jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n\nlet parsed = null;\nif (jsonMatch) {\n  try {\n    parsed = JSON.parse(jsonMatch[0]);\n  } catch(e) {\n    console.log('[LEO] JSON parse failed:', e.message);\n  }\n}\n\nconst safe = (val, fallback) =>\n  (typeof val === 'string' && val.trim().length > 3) ? val.trim() : fallback;\n\nconst safeArr = (val, fallback) =>\n  (Array.isArray(val) && val.length > 0) ? val : fallback;\n\nconst lead = $('Extract Lead Fields').item.json;\n\nreturn [{\n  json: {\n    name:                lead.name,\n    company:             lead.company,\n    linkedin:            lead.linkedin,\n    email:               lead.email,\n    stage:               lead.stage,\n    source:              lead.source,\n    pageId:              lead.pageId,\n    pageUrl:             lead.pageUrl,\n    backgroundSummary:   safe(parsed?.backgroundSummary,   'No background data found. Research manually.'),\n    companyIntel:        safe(parsed?.companyIntel,        'No company data found. Research manually.'),\n    likelyPainPoints:    safeArr(parsed?.likelyPainPoints, ['To be identified in intro call']),\n    conversationHooks:   safeArr(parsed?.conversationHooks, ['Ask about their current biggest challenge']),\n    outreachMessage:     safe(parsed?.outreachMessage,     'Draft outreach message not generated. Write manually.'),\n    researchConfidence:  safe(parsed?.researchConfidence,  'low'),\n    sourcesFound:        safeArr(parsed?.sourcesFound,     []),\n    rawOutput:           raw.substring(0, 800)\n  }\n}];"
+      },
+      "id": "parse-enrichment",
+      "name": "Parse Enrichment JSON",
+      "type": "n8n-nodes-base.code",
+      "position": [820, -400],
+      "typeVersion": 2,
+      "onError": "continueErrorOutput"
+    },
+
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.pageId }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Enriched"
+            },
+            {
+              "key": "Enrichment|rich_text",
+              "textContent": "={{ '**Background**\\n' + $json.backgroundSummary + '\\n\\n**Company Intelligence**\\n' + $json.companyIntel + '\\n\\n**Likely Pain Points**\\n• ' + $json.likelyPainPoints.join('\\n• ') + '\\n\\n**Research Confidence:** ' + $json.researchConfidence }}"
+            },
+            {
+              "key": "Conversation Hooks|rich_text",
+              "textContent": "={{ $json.conversationHooks.map((h, i) => (i+1) + '. ' + h).join('\\n') }}"
+            },
+            {
+              "key": "Outreach Draft|rich_text",
+              "textContent": "={{ $json.outreachMessage }}"
+            },
+            {
+              "key": "Last Updated|date",
+              "date": "={{ $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "notion-update",
+      "name": "Update Notion CRM Lead",
+      "type": "n8n-nodes-base.notion",
+      "position": [1060, -400],
+      "typeVersion": 2.2,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "notionApi": {
+          "id": "y9y9oXAKwbaEbAUZ",
+          "name": "Notion account"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=✅ *{{ $('Parse Enrichment JSON').item.json.name }}* @ {{ $('Parse Enrichment JSON').item.json.company }} — enriched.\n\n*Background*\n{{ $('Parse Enrichment JSON').item.json.backgroundSummary }}\n\n*Company*\n{{ $('Parse Enrichment JSON').item.json.companyIntel }}\n\n*Pain points*\n• {{ $('Parse Enrichment JSON').item.json.likelyPainPoints.join('\\n• ') }}\n\n*Conversation hooks*\n{{ $('Parse Enrichment JSON').item.json.conversationHooks.map((h, i) => (i+1) + '. ' + h).join('\\n') }}\n\n*Suggested opener*\n{{ $('Parse Enrichment JSON').item.json.outreachMessage }}\n\n🔗 Notion: {{ $json.url }}\n_Confidence: {{ $('Parse Enrichment JSON').item.json.researchConfidence }}_",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-success",
+      "name": "Telegram — Enrichment Ready",
+      "type": "n8n-nodes-base.telegram",
+      "position": [1300, -400],
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=🚨 LEO failed.\n\nLead: {{ $('Extract Lead Fields').item.json.name ?? 'unknown' }} @ {{ $('Extract Lead Fields').item.json.company ?? 'unknown' }}\nError: {{ $json.error?.message ?? 'Unknown error' }}\nNode: {{ $json.error?.node?.name ?? 'unknown' }}\nTime: {{ $now.setZone('Europe/Berlin').toFormat('dd MMM yyyy, HH:mm') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-error",
+      "name": "Telegram — Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "position": [820, -200],
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+
+    {
+      "parameters": {},
+      "id": "error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "position": [580, -200],
+      "typeVersion": 1
+    },
+
+    {
+      "parameters": {
+        "chatId": "=8452712398",
+        "text": "=🚨 LEO — fatal error caught by Error Trigger.\nError: {{ $json.error.message }}\nNode: {{ $json.error.node.name }}\nTimestamp: {{ $now }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "error-trigger-alert",
+      "name": "Error Trigger Alert",
+      "type": "n8n-nodes-base.telegram",
+      "position": [820, -200],
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "JoAeGUPLgB1pu101",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+
+  ],
+
+  "connections": {
+
+    "Notion CRM — New Lead": {
+      "main": [[{ "node": "Extract Lead Fields", "type": "main", "index": 0 }]]
+    },
+
+    "Extract Lead Fields": {
+      "main": [
+        [{ "node": "Telegram — Lead Detected", "type": "main", "index": 0 }],
+        [{ "node": "Telegram — Error Alert", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Telegram — Lead Detected": {
+      "main": [[{ "node": "LEO Research Agent", "type": "main", "index": 0 }]]
+    },
+
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "LEO Research Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+
+    "Tavily Search": {
+      "ai_tool": [[{ "node": "LEO Research Agent", "type": "ai_tool", "index": 0 }]]
+    },
+
+    "LEO Research Agent": {
+      "main": [
+        [{ "node": "Parse Enrichment JSON", "type": "main", "index": 0 }],
+        [{ "node": "Telegram — Error Alert", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Parse Enrichment JSON": {
+      "main": [
+        [{ "node": "Update Notion CRM Lead", "type": "main", "index": 0 }],
+        [{ "node": "Telegram — Error Alert", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Update Notion CRM Lead": {
+      "main": [
+        [{ "node": "Telegram — Enrichment Ready", "type": "main", "index": 0 }],
+        [{ "node": "Telegram — Error Alert", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Error Trigger": {
+      "main": [[{ "node": "Error Trigger Alert", "type": "main", "index": 0 }]]
+    }
+
+  },
+
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "dYMYxR3ZcdZ5tqbs"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "LEO-lead-enrichment-outreach-v1",
+  "tags": ["moinland", "leo", "crm", "leads", "enrichment"]
+}
