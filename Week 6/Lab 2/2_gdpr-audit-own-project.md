@@ -1,6 +1,5 @@
 # GDPR Audit — Moinland AI Agents
 **Ironhack AI Consulting Bootcamp, Week 5**
-**Prepared by:** Student team (Germany)
 **Note:** This is a student exercise. Not a legal opinion. Not a DPIA. Not a certification.
 
 ---
