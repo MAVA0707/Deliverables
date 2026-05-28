@@ -13,9 +13,6 @@ LangSmith project URL: https://smith.langchain.com/o/YOUR_ORG/projects/bias-red-
 | File | Purpose |
 |---|---|
 | `bias_red_team_lab.ipynb` | **Main notebook** — all three phases in one place: baseline logging, adversarial sequences, and guard comparison. Run this. |
-| `phase1_baseline.py` | Standalone script equivalent of Phase 1 (baseline logging). |
-| `phase2_3_adversarial.py` | Standalone script equivalent of Phases 2 & 3 (adversarial sequences). |
-| `reinforce_guard_comparison.py` | Standalone script equivalent of the Reinforce task (guard comparison). |
 | `lab_summary.md` | Checkpoint 4 trace analysis notes and the Checkpoint 5 conclusion paragraph (150-250 words). |
 | `consulting_memo.md` | Stretch task: a 400-500 word client-ready consulting memo on the ethnic/cultural stereotype failure, with EU AI Act article references and a concrete remediation recommendation. |
 | `.env.example` | Template for environment variables. Copy to `.env` and fill in your keys. Never commit `.env` to version control. |
@@ -52,13 +49,7 @@ Open the notebook and run cells top to bottom:
 jupyter notebook bias_red_team_lab.ipynb
 ```
 
-Or run the standalone scripts in order if you prefer:
 
-```bash
-python phase1_baseline.py
-python phase2_3_adversarial.py
-python reinforce_guard_comparison.py   # optional reinforce task
-```
 
 ---
 
