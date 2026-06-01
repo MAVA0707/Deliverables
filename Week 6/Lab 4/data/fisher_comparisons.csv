@@ -1,0 +1,22 @@
+channel_a,channel_b,conv_a,clicks_a,conv_b,clicks_b,rate_a,rate_b,diff,pct_diff,odds_ratio,p_value,significant,significant_bonferroni,p_value_fdr,significant_fdr
+Affiliate,Display,2112,54205,361,28042,0.03896,0.01287,-0.02609,-67.0,3.109,0.0,True,True,0.0,True
+Affiliate,Email,2112,54205,11998,194559,0.03896,0.06167,0.0227,58.3,0.617,0.0,True,True,0.0,True
+Affiliate,Influencer,2112,54205,1244,66484,0.03896,0.01871,-0.02025,-52.0,2.126,0.0,True,True,0.0,True
+Affiliate,Paid Search,2112,54205,4218,88253,0.03896,0.04779,0.00883,22.7,0.808,0.0,True,True,0.0,True
+Affiliate,SEO/Organic,2112,54205,10557,189068,0.03896,0.05584,0.01687,43.3,0.686,0.0,True,True,0.0,True
+Affiliate,Social Media,2112,54205,1301,60053,0.03896,0.02166,-0.0173,-44.4,1.831,0.0,True,True,0.0,True
+Display,Email,361,28042,11998,194559,0.01287,0.06167,0.04879,379.0,0.198,0.0,True,True,0.0,True
+Display,Influencer,361,28042,1244,66484,0.01287,0.01871,0.00584,45.3,0.684,0.0,True,True,0.0,True
+Display,Paid Search,361,28042,4218,88253,0.01287,0.04779,0.03492,271.3,0.26,0.0,True,True,0.0,True
+Display,SEO/Organic,361,28042,10557,189068,0.01287,0.05584,0.04296,333.7,0.221,0.0,True,True,0.0,True
+Display,Social Media,361,28042,1301,60053,0.01287,0.02166,0.00879,68.3,0.589,0.0,True,True,0.0,True
+Email,Influencer,11998,194559,1244,66484,0.06167,0.01871,-0.04296,-69.7,3.447,0.0,True,True,0.0,True
+Email,Paid Search,11998,194559,4218,88253,0.06167,0.04779,-0.01387,-22.5,1.309,0.0,True,True,0.0,True
+Email,SEO/Organic,11998,194559,10557,189068,0.06167,0.05584,-0.00583,-9.5,1.111,0.0,True,True,0.0,True
+Email,Social Media,11998,194559,1301,60053,0.06167,0.02166,-0.04,-64.9,2.968,0.0,True,True,0.0,True
+Influencer,Paid Search,1244,66484,4218,88253,0.01871,0.04779,0.02908,155.4,0.38,0.0,True,True,0.0,True
+Influencer,SEO/Organic,1244,66484,10557,189068,0.01871,0.05584,0.03713,198.4,0.322,0.0,True,True,0.0,True
+Influencer,Social Media,1244,66484,1301,60053,0.01871,0.02166,0.00295,15.8,0.861,0.00019115,True,True,0.00019115,True
+Paid Search,SEO/Organic,4218,88253,10557,189068,0.04779,0.05584,0.00804,16.8,0.849,0.0,True,True,0.0,True
+Paid Search,Social Media,4218,88253,1301,60053,0.04779,0.02166,-0.02613,-54.7,2.267,0.0,True,True,0.0,True
+SEO/Organic,Social Media,10557,189068,1301,60053,0.05584,0.02166,-0.03417,-61.2,2.671,0.0,True,True,0.0,True

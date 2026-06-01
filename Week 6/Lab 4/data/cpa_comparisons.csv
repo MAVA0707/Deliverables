@@ -1,0 +1,22 @@
+channel_a,channel_b,mean_a,mean_b,diff,pct_diff,t_stat,p_value,cohens_d,effect_size,significant,significant_bonferroni,p_value_fdr,significant_fdr
+Affiliate,Display,22.62,163.1,140.48,621.1,-26.344,0.0,3.927,large,True,True,0.0,True
+Affiliate,Email,22.62,0.98,-21.64,-95.7,30.723,0.0,-4.58,large,True,True,0.0,True
+Affiliate,Influencer,22.62,86.53,63.92,282.6,-22.259,0.0,3.318,large,True,True,0.0,True
+Affiliate,Paid Search,22.62,31.79,9.17,40.6,-7.749,0.0,1.155,large,True,True,0.0,True
+Affiliate,SEO/Organic,22.62,1.67,-20.95,-92.6,29.687,0.0,-4.425,large,True,True,0.0,True
+Affiliate,Social Media,22.62,66.12,43.5,192.3,-19.934,0.0,2.972,large,True,True,0.0,True
+Display,Email,163.1,0.98,-162.12,-99.4,30.669,0.0,-4.572,large,True,True,0.0,True
+Display,Influencer,163.1,86.53,-76.57,-46.9,12.816,0.0,-1.91,large,True,True,0.0,True
+Display,Paid Search,163.1,31.79,-131.31,-80.5,24.447,0.0,-3.644,large,True,True,0.0,True
+Display,SEO/Organic,163.1,1.67,-161.43,-99.0,30.536,0.0,-4.552,large,True,True,0.0,True
+Display,Social Media,163.1,66.12,-96.98,-59.5,17.088,0.0,-2.547,large,True,True,0.0,True
+Email,Influencer,0.98,86.53,85.56,8738.3,-30.729,0.0,4.581,large,True,True,0.0,True
+Email,Paid Search,0.98,31.79,30.81,3147.1,-32.331,0.0,4.82,large,True,True,0.0,True
+Email,SEO/Organic,0.98,1.67,0.69,70.9,-10.338,0.0,1.541,large,True,True,0.0,True
+Email,Social Media,0.98,66.12,65.14,6653.1,-31.527,0.0,4.7,large,True,True,0.0,True
+Influencer,Paid Search,86.53,31.79,-54.74,-63.3,18.605,0.0,-2.773,large,True,True,0.0,True
+Influencer,SEO/Organic,86.53,1.67,-84.86,-98.1,30.476,0.0,-4.543,large,True,True,0.0,True
+Influencer,Social Media,86.53,66.12,-20.42,-23.6,5.889,0.0,-0.878,large,True,True,0.0,True
+Paid Search,SEO/Organic,31.79,1.67,-30.12,-94.7,31.574,0.0,-4.707,large,True,True,0.0,True
+Paid Search,Social Media,31.79,66.12,34.33,108.0,-15.09,0.0,2.25,large,True,True,0.0,True
+SEO/Organic,Social Media,1.67,66.12,64.44,3851.0,-31.185,0.0,4.649,large,True,True,0.0,True
