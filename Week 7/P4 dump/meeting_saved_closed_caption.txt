@@ -1,0 +1,1571 @@
+[Markus] 14:15:21
+I see. I see.
+
+[Gunter Kleber] 14:15:22
+Yeah, because the meeting is transcript, and I just took that.
+
+[Gunter Kleber] 14:15:28
+I thought it might be might be useful if we miss something out. I don't think we missed something out.
+
+[Markus] 14:15:28
+Yeah, typically.
+
+[Gunter Kleber] 14:15:35
+But I didn't know how it will work. So I thought, Okay, maybe good idea how to do that.
+
+[abiod] 14:15:42
+Is there where you can share the transcripts.
+
+[Gunter Kleber] 14:15:50
+If you click on transcript on the side.
+
+[Gunter Kleber] 14:15:56
+Um. No, on, sorry, on below, on more.
+
+[Markus] 14:16:02
+But it's not there anymore, because we are now in a different meeting room.
+
+[Gunter Kleber] 14:16:05
+Yeah. Well, now we're in a different room and meeting, so I don't know how to get back to the Other One That's I cannot tell you At The Moment.
+
+[Markus] 14:16:12
+Ah. Okay.
+
+[Gunter Kleber] 14:16:14
+But it's going right, live, and it getting transcripted, but I didn't know how good it will work. That's the issue.
+
+[Markus] 14:16:20
+Yeah? Yeah?
+
+[Markus] 14:16:26
+That was smart.
+
+[Markus] 14:16:29
+Typically, I use third party tools like granola or.
+
+[Markus] 14:16:33
+Gemini, you know, for.
+
+[Gunter Kleber] 14:16:33
+Yeah, I'll I'll it guys um, because I said, Okay, guys.
+
+[Gunter Kleber] 14:16:39
+What about? I build up in the first step, just the transcription, and out of the transcription I will run A Summary Based On Our Co-pilot Api Which You Can Also Use The Newest.
+
+[Gunter Kleber] 14:16:53
+Uh, uh.
+
+[Gunter Kleber] 14:16:55
+The newest Chat Gpt models, which is quite okay, and I said, Okay, let's I can build a back end.
+
+[Gunter Kleber] 14:17:01
+And later on get get a whisper on it. And after that my final idea is that the bot is taking place.
+
+[Gunter Kleber] 14:17:10
+In the meeting, and even can talk to us right now if he doesn't understand something, and that would be The Main Overall Goal.
+
+[Gunter Kleber] 14:17:18
+So to track, for example, to be like the assistant who is writing everything into the uh into the database, And So On And.
+
+[Gunter Kleber] 14:17:29
+Remind the colleagues later on. Hey, you have to do something. Please do it.
+
+[Gunter Kleber] 14:17:33
+And but to do it stepwise. And then he said, Yeah, nice idea. We'll take a lot of time.
+
+[Markus] 14:17:36
+Yeah?
+
+[Gunter Kleber] 14:17:41
+Technically, if feasible, no no doubt about that, but it also takes a lot of trading.
+
+[Gunter Kleber] 14:17:47
+And he told me there's a device called Plot.
+
+[Gunter Kleber] 14:17:53
+Pl a ud.
+
+[abiod] 14:17:56
+Okay.
+
+[Gunter Kleber] 14:17:56
+Which really works properly. Even Dsgo voo conform.
+
+[Gunter Kleber] 14:18:05
+Conformity, integratable into your onenote company, and with its own microphones, and so on. You can just put it into the.
+
+[Gunter Kleber] 14:18:14
+Onto the table. It's about one hundred and eighty bucks.
+
+[Gunter Kleber] 14:18:18
+Per device and kind of thirty uh transcriptions per month are in it.
+
+[Gunter Kleber] 14:18:25
+In the base subscription, which is, uh.
+
+[Gunter Kleber] 14:18:29
+Unpaid. If you need more workload, you have to do an subscription.
+
+[Markus] 14:18:34
+Yeah?
+
+[Gunter Kleber] 14:18:35
+I looked at it. And it's quite really nice, the device. Yeah, because you cannot.
+
+[Markus] 14:18:40
+Yeah?
+
+[Gunter Kleber] 14:18:41
+To four, if to phone calls.
+
+[Gunter Kleber] 14:18:43
+And so on. That's kind of.
+
+[Gunter Kleber] 14:18:46
+Yeah. Nice one. But still.
+
+[Gunter Kleber] 14:18:50
+Thinking about? Does it fit the company needs in the long run.
+
+[Gunter Kleber] 14:18:56
+Let's see. So. And I thought, Okay, they will deployed device. Everybody got basically a phone who can do the same.
+
+[Gunter Kleber] 14:19:03
+But still there is much, much. The Gdpr aspect is the.
+
+[Markus] 14:19:08
+Yeah? Yeah?
+
+[Gunter Kleber] 14:19:09
+Basic, the most.
+
+[Gunter Kleber] 14:19:12
+Uh yeah. Critical issue to solve.
+
+[Gunter Kleber] 14:19:15
+I did well, therefore I don't know how to, but I think there's a summary that created right now was quite good.
+
+[Markus] 14:19:28
+The question is now is.
+
+[Markus] 14:19:31
+I mean, what is the.
+
+[Markus] 14:19:35
+What's the use case? I mean, we handed an a use case.
+
+[Gunter Kleber] 14:19:39
+Yeah?
+
+[Markus] 14:19:40
+And so, if I understand it correctly.
+
+[Markus] 14:19:43
+Now we need to turn our notes.
+
+[Markus] 14:19:47
+Into a use case we we're and propose a solution or design for a solution.
+
+[Markus] 14:19:53
+For that use case. Is that correct?
+
+[Gunter Kleber] 14:19:53
+Mhm.
+
+[Gunter Kleber] 14:19:55
+I guess. So can we start a whiteboard here? Yeah, we can.
+
+[Gunter Kleber] 14:20:02
+Do you see the whiteboard.
+
+[Gunter Kleber] 14:20:04
+Or is it just now right at once.
+
+[Markus] 14:20:05
+It's not loading. Yeah.
+
+[abiod] 14:20:07
+Timeline.
+
+[Gunter Kleber] 14:20:08
+Okay, let me let me get. Let's do. If you want to.
+
+[Markus] 14:20:09
+Yeah?
+
+[Gunter Kleber] 14:20:13
+Because I'm in the technical.
+
+[Gunter Kleber] 14:20:17
+In the mechanic development. I always have my sketchboard here.
+
+[Markus] 14:20:21
+Ah. Nice.
+
+[Gunter Kleber] 14:20:22
+Because when you're basically.
+
+[Gunter Kleber] 14:20:24
+Try to figure out stuff in the three dimensional cut development with the guys from Sevilla or somewhere else. That's A Pain In The Ass If You Cannot Draw On The Computer.
+
+[Gunter Kleber] 14:20:34
+And therefore I bought that one so. But on the wrong screen. Of course I have to put it there. Yeah, yeah.
+
+[Gunter Kleber] 14:20:42
+Did do so. Let's give it a shot. So what I there are basically two problems that I see.
+
+[Gunter Kleber] 14:20:50
+Or layers. Let's call it layers. We have kind of.
+
+[Gunter Kleber] 14:20:55
+Different data. Silos Right.
+
+[abiod] 14:20:58
+Mhm.
+
+[Gunter Kleber] 14:20:59
+So this is data.
+
+[Gunter Kleber] 14:21:02
+But data, a.
+
+[Gunter Kleber] 14:21:05
+B, C, and A not equals B not equals C right.
+
+[abiod] 14:21:10
+Mhm.
+
+[Gunter Kleber] 14:21:10
+That's one issue.
+
+[Gunter Kleber] 14:21:13
+Then we have uh.
+
+[Gunter Kleber] 14:21:17
+Production Line.
+
+[Gunter Kleber] 14:21:20
+Difference.
+
+[Gunter Kleber] 14:21:31
+And of course, then we have the quality. I don't like that.
+
+[Gunter Kleber] 14:21:38
+With the quality management.
+
+[Gunter Kleber] 14:21:42
+With Esel, I think mostly something like that one, and so on.
+
+[Markus] 14:21:43
+Yes.
+
+[Gunter Kleber] 14:21:50
+Which is the process and confirmity. Right also kind of the ndas With suppliers.
+
+[Markus] 14:21:59
+Yes.
+
+[Gunter Kleber] 14:21:59
+I'm also the Ip.
+
+[Gunter Kleber] 14:22:01
+Which shall not leave. Maybe the company.
+
+[Markus] 14:22:05
+And she she mentioned something else. She said. She's working on reports and certifications.
+
+[Gunter Kleber] 14:22:05
+Right.
+
+[Markus] 14:22:10
+And she needs data from those sources for reports and certifications.
+
+[Markus] 14:22:17
+Needed data for framework details.
+
+[Markus] 14:22:20
+So she also has.
+
+[Gunter Kleber] 14:22:21
+So.
+
+[Markus] 14:22:22
+Maybe a subset of the data we see to the left.
+
+[Markus] 14:22:25
+Maybe it's different data. That's what I don't know.
+
+[Gunter Kleber] 14:22:27
+Yeah?
+
+[Gunter Kleber] 14:22:28
+Yeah, yeah. But basically yeah. But yeah, that's a good idea. Give me a second reports for a certification.
+
+[Markus] 14:22:34
+Yeah, like I don't know.
+
+[Markus] 14:22:37
+So there, there's some.
+
+[Markus] 14:22:39
+What's it called? There's a lot of regulations currently on sustainability, reporting.
+
+[Gunter Kleber] 14:22:44
+Yeah?
+
+[Markus] 14:22:47
+How do you comply.
+
+[Gunter Kleber] 14:22:47
+Uh. So also company company reporting.
+
+[Markus] 14:22:52
+Yeah, I'm I'm blanking the.
+
+[Gunter Kleber] 14:22:53
+Okay. Got it.
+
+[Markus] 14:22:55
+The initials for that.
+
+[Gunter Kleber] 14:22:55
+Yeah?
+
+[Gunter Kleber] 14:22:56
+So basically, then I.
+
+[Markus] 14:22:57
+Csrd.
+
+[Gunter Kleber] 14:22:59
+Then I would, I would kind of say, Okay, we have. Uh, maybe even more data. We have kind of data containers.
+
+[Gunter Kleber] 14:23:08
+For development for production, maybe even just similar singular data containers for qm: whatever? Yeah.
+
+[Gunter Kleber] 14:23:18
+But all are not equal. Huh.
+
+[Markus] 14:23:20
+Yep, yep.
+
+[Gunter Kleber] 14:23:21
+You're doing. Yeah, come on.
+
+[Gunter Kleber] 14:23:24
+Okay, so. And what? What is the base idea we can suggest.
+
+[Gunter Kleber] 14:23:28
+So. And what what are the pain points and the base idea? That's what I want to kind of get With The Graph Here.
+
+[Markus] 14:23:39
+Pinpoints. I noted down.
+
+[Markus] 14:23:42
+Is. Um.
+
+[Markus] 14:23:44
+Lots of data, lack of good data.
+
+[Markus] 14:23:47
+Too much time to get to data manual work.
+
+[Markus] 14:23:52
+So those are the ones that I and and uh.
+
+[Gunter Kleber] 14:23:52
+Yeah?
+
+[Markus] 14:23:56
+Worker track data without distracting workers like worker productivity.
+
+[Gunter Kleber] 14:24:01
+Yeah?
+
+[Markus] 14:24:01
+Is another pain point I noted down.
+
+[Gunter Kleber] 14:24:04
+No data approved here, and and the interaction between kind of uh.
+
+[Gunter Kleber] 14:24:13
+Macros and Petra. She was lost, or she is lost because she doesn't find anything when he's not here. Kind of.
+
+[Markus] 14:24:15
+Yeah?
+
+[Markus] 14:24:24
+Exactly. He's doing the manual plumbing, you know, to get the data sources together.
+
+[Gunter Kleber] 14:24:30
+Exactly.
+
+[Markus] 14:24:31
+And the aggregation integration of the data sources.
+
+[Gunter Kleber] 14:24:36
+So basically.
+
+[Gunter Kleber] 14:24:39
+We have to have one big database right.
+
+[Gunter Kleber] 14:24:45
+Which everything gets in uniform, in a, in a, in a uniform way.
+
+[Gunter Kleber] 14:24:52
+Right.
+
+[Markus] 14:24:53
+And then exactly, and then on top of that.
+
+[Markus] 14:24:56
+Then needs to be personalized. Dashboards, you know.
+
+[Markus] 14:25:00
+Petra wanted to have the real time dashboard, with notifications of errors and things like that.
+
+[Gunter Kleber] 14:25:00
+Yeah?
+
+[Gunter Kleber] 14:25:07
+So.
+
+[Markus] 14:25:07
+She also wanted to keep.
+
+[Markus] 14:25:11
+Production up and running.
+
+[Markus] 14:25:15
+Marcus wanted to have.
+
+[Markus] 14:25:18
+Data.
+
+[Markus] 14:25:20
+Access to data and.
+
+[Markus] 14:25:25
+Um. Data is clear that different system.
+
+[Markus] 14:25:31
+I I think he needs to also access to the data, maybe not in a dashboard.
+
+[Gunter Kleber] 14:25:35
+Yeah. But he in the in the in kind of the raw data.
+
+[Markus] 14:25:35
+But more.
+
+[Markus] 14:25:39
+Yeah, yeah, exactly.
+
+[Gunter Kleber] 14:25:40
+Yeah? Yeah?
+
+[Markus] 14:25:42
+And Elle needs a different view on data as well.
+
+[Markus] 14:25:45
+Like. It's a typical.
+
+[Gunter Kleber] 14:25:45
+Yeah?
+
+[Markus] 14:25:48
+Enterprise.
+
+[Markus] 14:25:50
+Service pass or enterprise, data, integration.
+
+[Markus] 14:25:55
+Challenge.
+
+[Markus] 14:26:00
+Sqm.
+
+[Markus] 14:26:06
+And then there's production. Wants to have a different set of.
+
+[Gunter Kleber] 14:26:11
+Yeah?
+
+[Markus] 14:26:12
+Dashboards and data.
+
+[Markus] 14:26:15
+And notifications.
+
+[Gunter Kleber] 14:26:16
+Yeah, that's that would be, in in my opinion, because the dashboard is always kind of having a.
+
+[Markus] 14:26:22
+Yeah?
+
+[Gunter Kleber] 14:26:22
+Or it can be one document or more. But that's kind of only what what is going on or no. What Was Going On.
+
+[Gunter Kleber] 14:26:29
+But also a live dash.
+
+[Markus] 14:26:32
+Yeah, exactly. Yeah.
+
+[Markus] 14:26:34
+That when an error occurs that she quickly recognizes it, and they can do something about it, and.
+
+[Gunter Kleber] 14:26:35
+Nein.
+
+[Gunter Kleber] 14:26:38
+Yeah?
+
+[Markus] 14:26:41
+Ideally see the root cause.
+
+[Gunter Kleber] 14:26:43
+Yeah?
+
+[Markus] 14:26:43
+Of the error in production.
+
+[Markus] 14:26:54
+Sorry, Eddie, I I pause for a second. I let you share your thoughts.
+
+[Markus] 14:27:16
+What what did you hear in regards of.
+
+[Markus] 14:27:21
+Um. Ideas on how we can create a solution for them.
+
+[Gunter Kleber] 14:27:46
+How do you do your copy.
+
+[Markus] 14:27:52
+Maybe connection. We lost the connection.
+
+[Gunter Kleber] 14:27:59
+Okay, so. But uh, that's one thing I think I should add.
+
+[Gunter Kleber] 14:28:03
+What is here, no data proof for wework.
+
+[Gunter Kleber] 14:28:09
+Rework uh and.
+
+[Gunter Kleber] 14:28:12
+Inline.
+
+[Gunter Kleber] 14:28:14
+Tests.
+
+[Gunter Kleber] 14:28:20
+And kind of a root cause.
+
+[Gunter Kleber] 14:28:22
+Where's the root cause?
+
+[Markus] 14:28:24
+Cost. Analysis.
+
+[Gunter Kleber] 14:28:26
+Uh. No one can do it by having.
+
+[Gunter Kleber] 14:28:29
+The correct data.
+
+[Markus] 14:28:30
+Yeah, and every time someone wants to have data it's.
+
+[Markus] 14:28:35
+Marcos, who pulls it manually from the.
+
+[Gunter Kleber] 14:28:37
+Mhm.
+
+[Markus] 14:28:42
+It feels like he had. He was instructed to be very critical about Ai. Similar than your instructor was.
+
+[Gunter Kleber] 14:28:46
+Mhm. Definitely: yeah, yeah.
+
+[Markus] 14:28:55
+And he was very. I mean, this is from real life. I heard this over and over again.
+
+[Gunter Kleber] 14:29:01
+Yeah?
+
+[Markus] 14:29:01
+The integration, complexity.
+
+[Markus] 14:29:03
+That's a big issue for him.
+
+[Markus] 14:29:06
+And I don't. Yeah, maybe it's solved with Ai. But I'm not sure, because.
+
+[Markus] 14:29:11
+There's still the interface.
+
+[Gunter Kleber] 14:29:15
+Well, yeah.
+
+[Markus] 14:29:15
+Challenge. Yeah, how do we? How do you get it into a wreck, you know, from an.
+
+[Gunter Kleber] 14:29:18
+Exactly so, and and how to get it unified here, I think that's the most challenge, and.
+
+[Markus] 14:29:20
+Yes, exactly.
+
+[Gunter Kleber] 14:29:23
+That's what I try to say. Okay, let's solve one after the other. Implement a implement B implement C. Which.
+
+[Markus] 14:29:26
+Yes, yes.
+
+[Gunter Kleber] 14:29:31
+Which can be different kind of data data out of the production line out of a machine out of the Development Whatever You Name It.
+
+[Gunter Kleber] 14:29:38
+You have a big context storage, and then you can retrieve it directly. Also. That would be always kind of The Agent Which I not Yet Kind Of Put In.
+
+[Gunter Kleber] 14:29:51
+But basically what is what is the thing?
+
+[Gunter Kleber] 14:29:55
+There's one kind of knowledge agent.
+
+[Markus] 14:30:02
+Hey, there's an information gathering agents.
+
+[Gunter Kleber] 14:30:05
+Yep.
+
+[Markus] 14:30:05
+Maybe it's Apis, but.
+
+[Markus] 14:30:07
+Most likely it's I I don't know yet. Yeah.
+
+[Gunter Kleber] 14:30:08
+Yeah?
+
+[Gunter Kleber] 14:30:10
+Yeah, I don't know yet, Too, but That's Kind Of The Idea Of What I Had Okay, So What My one thing was okay. When when Marcus is away I don't have a clue. Okay, you can ask the knowledge agent. Yeah, so, for example. Of course, we also have to set here. Some uniformation is way easier, I think, if we can also put in an llm To Get An Input From There And Get The Correct Output From There.
+
+[Markus] 14:30:20
+Yeah? Yeah?
+
+[Markus] 14:30:29
+Yeah? Yeah?
+
+[Markus] 14:30:33
+Yes.
+
+[Gunter Kleber] 14:30:34
+Maybe later it is more stable.
+
+[Gunter Kleber] 14:30:38
+To just do it by a script.
+
+[Gunter Kleber] 14:30:40
+Uh, it's it's less resources uh.
+
+[Markus] 14:30:43
+Yes.
+
+[Gunter Kleber] 14:30:43
+I would say, there's a when when we always have uniform data here that I think there are two use Cases You Have Always Uniform Data Which Has To Be Just Transcribed Into A.
+
+[Gunter Kleber] 14:30:56
+Into the standardized rec format. Then you do it scripted because more resources absolutely.
+
+[Markus] 14:31:01
+Yes.
+
+[Gunter Kleber] 14:31:07
+Um. With no problem, and if if you see there's always coming different data, then it has to be interpreted By An Llm Maybe, But, also Very Narrow.
+
+[Gunter Kleber] 14:31:17
+Input, output.
+
+[Markus] 14:31:19
+Yes.
+
+[Gunter Kleber] 14:31:20
+Uh stuff. So that's kind of the one thing. Besides, of course, to do the dashboards, you know.
+
+[Markus] 14:31:26
+Yeah. Yeah. No, no. The hot part is.
+
+[Markus] 14:31:29
+Looking at the data.
+
+[Markus] 14:31:32
+This is all internal data. I think you mentioned it at the very end.
+
+[Markus] 14:31:35
+This is all under nda Meaning, it shouldn't leave.
+
+[Gunter Kleber] 14:31:38
+Yeah?
+
+[Markus] 14:31:40
+The it like it should leave the firewall.
+
+[Markus] 14:31:43
+If you put it into an llm like chat Gbt.
+
+[Gunter Kleber] 14:31:44
+Yeah?
+
+[Markus] 14:31:46
+It would leave the firewall.
+
+[Markus] 14:31:49
+Either. Either you do something locally.
+
+[Markus] 14:31:52
+Yeah, like local Nh Nad. N. Hosting to do the transformations.
+
+[Gunter Kleber] 14:31:53
+Yeah?
+
+[Markus] 14:31:59
+Um, and the database also is an interesting one, because.
+
+[Gunter Kleber] 14:31:59
+Yeah?
+
+[Markus] 14:32:03
+I know we know we use Pinecone as a vector database.
+
+[Markus] 14:32:08
+Now projects. But for this use case with highly sensitive production data.
+
+[Gunter Kleber] 14:32:09
+Yeah?
+
+[Markus] 14:32:14
+Most likely it should stay also on site.
+
+[Markus] 14:32:18
+Just for security reasons.
+
+[Markus] 14:32:19
+So I'm switching perspectives right now a little bit from the technical side. What do we just draw.
+
+[Gunter Kleber] 14:32:24
+Mhm.
+
+[Markus] 14:32:26
+Into the you know Gdpr.
+
+[Markus] 14:32:29
+Eu. Ai.
+
+[Markus] 14:32:31
+Type of you know.
+
+[Markus] 14:32:33
+Perspective on it, and it security slash it. Security. Yeah.
+
+[Markus] 14:32:37
+So that is what.
+
+[Markus] 14:32:39
+So from a Gd.
+
+[Markus] 14:32:41
+Maybe that's worth a note talking about Gdpr. It's not as.
+
+[Markus] 14:32:46
+Sensitive data in regards to Gdpr.
+
+[Gunter Kleber] 14:32:49
+Yeah, there's no sensitive for it.
+
+[Markus] 14:32:52
+Yeah, no. P. Pii. No personal identifiable information.
+
+[Gunter Kleber] 14:32:55
+Yeah, exactly.
+
+[Gunter Kleber] 14:32:59
+Yep.
+
+[Markus] 14:32:59
+It's all about machine data. It's all about production data.
+
+[Gunter Kleber] 14:33:02
+Exactly.
+
+[Gunter Kleber] 14:33:04
+Yeah. But okay, so. But let's let's keep it. Not that it is not that simple? Because later on, what We Have Together That's One Thing, We Have No Data Approved This Size Here.
+
+[Markus] 14:33:15
+Yeah?
+
+[Gunter Kleber] 14:33:15
+There has to be data.
+
+[Gunter Kleber] 14:33:20
+Data has to be gathered. That's what I thought here. Yeah, that's that's kind of.
+
+[Markus] 14:33:23
+Yeah, yeah, exactly.
+
+[Gunter Kleber] 14:33:25
+So. And just one idea. You have kind of just a big tab button.
+
+[Gunter Kleber] 14:33:31
+On the computer where he's always looking at yeah, or even a button where he.
+
+[Gunter Kleber] 14:33:36
+He's doing start. Stop. Someone can say, Okay, we can.
+
+[Gunter Kleber] 14:33:43
+We can kind of uh.
+
+[Gunter Kleber] 14:33:47
+Map, the work and the time and the productivity to a worker. And that's something which is kind of a Little Bit Of an Issue Yeah, So That's That's The Only Thing I See.
+
+[Markus] 14:33:50
+Yeah? Yeah?
+
+[Markus] 14:33:53
+Absolutely.
+
+[Markus] 14:33:56
+That's a good point. Yeah, yeah, so log files need to be protected.
+
+[Gunter Kleber] 14:33:59
+Yeah?
+
+[Gunter Kleber] 14:34:01
+Yeah?
+
+[Markus] 14:34:02
+Yeah. So that is. That is a very common thing. Yes, absolutely so. You cannot.
+
+[Markus] 14:34:07
+Um. Create any pro profiling for of employees? Yeah.
+
+[Gunter Kleber] 14:34:13
+Yeah?
+
+[Gunter Kleber] 14:34:14
+Yeah, that's basically it.
+
+[Markus] 14:34:16
+In reality you need to have log files. Yeah, there's no way around it for it. Security reasons.
+
+[Gunter Kleber] 14:34:19
+Yeah, for sure.
+
+[Markus] 14:34:22
+But absolutely it needs to be. You know, the minimum log file.
+
+[Markus] 14:34:26
+Data. And of course, you know, it needs to be protected against.
+
+[Markus] 14:34:31
+Um. You know, misuse like you said, with a.
+
+[Markus] 14:34:34
+Profiling, absolutely.
+
+[Gunter Kleber] 14:34:35
+Yeah, yeah. I think that can be an issue as soon as we get the workers involved with the time.
+
+[Markus] 14:34:40
+Yes.
+
+[Gunter Kleber] 14:34:41
+That's that's one thing. Yeah, and the Ai act.
+
+[Gunter Kleber] 14:34:47
+I would say, there is basically a minimum risk everywhere, because there is, there's no.
+
+[Markus] 14:34:52
+I agree.
+
+[Gunter Kleber] 14:34:55
+Autonomous. Uh.
+
+[Gunter Kleber] 14:34:57
+Decision Maker.
+
+[Markus] 14:34:58
+Yeah? Yeah?
+
+[Gunter Kleber] 14:35:08
+And so basically what what we can we can do at Gen. Tech is.
+
+[Gunter Kleber] 14:35:14
+Is there another color I can use?
+
+[Gunter Kleber] 14:35:18
+Yeah, I take that one. The dashboards can be agendic.
+
+[Gunter Kleber] 14:35:24
+What the fuck is going on.
+
+[Gunter Kleber] 14:35:26
+Okay. So wrong. Button. Where.
+
+[Gunter Kleber] 14:35:31
+Hey. Das geht nicht mehr weg.
+
+[Markus] 14:35:34
+Now we raise a.
+
+[Gunter Kleber] 14:35:36
+No, no erase of tunes. I don't know.
+
+[Markus] 14:35:37
+You use the adding on the whiteboard, the waterproof edding.
+
+[Gunter Kleber] 14:35:41
+Waterproof, adding on the wheelchair Whiteboard.
+
+[Gunter Kleber] 14:35:45
+That can be a chain. Take uh.
+
+[Gunter Kleber] 14:35:47
+The dashboard creation can be a chantic also with the user input kind of agentic. The knowledge agent general is a chantic.
+
+[Gunter Kleber] 14:35:56
+This kind of can be a script.
+
+[Gunter Kleber] 14:36:00
+In Atlantic.
+
+[Gunter Kleber] 14:36:04
+Yeah, um. And the data gathering is kind of manual.
+
+[Gunter Kleber] 14:36:11
+Yeah?
+
+[Gunter Kleber] 14:36:14
+Kind of manual has to be locked somehow. Yeah.
+
+[Gunter Kleber] 14:36:19
+And that's that's that's how I would build the pipeline and the solution around it.
+
+[Gunter Kleber] 14:36:27
+I still will try to get it away.
+
+[Gunter Kleber] 14:36:44
+So there are basically two two things. That's also.
+
+[Gunter Kleber] 14:36:48
+That's just the dashboard and the light thing there can also, the dashboard can be also analysis. So some kind of hey.
+
+[Gunter Kleber] 14:36:58
+Uh, what was going wrong last week. Uh. Give me the summary, or where is there some correlation? Do we Have Some as We Also Store Every Data.
+
+[Gunter Kleber] 14:37:07
+You can also have seen a. There's always in one process. There's always an issue popping up every two days, So Have A Closer look on.
+
+[Markus] 14:37:18
+Yeah?
+
+[Gunter Kleber] 14:37:19
+On sequence.
+
+[Gunter Kleber] 14:37:21
+Forty, eight whatever.
+
+[abiod] 14:37:24
+Okay. Um.
+
+[Markus] 14:37:24
+Absolutely. There's the Oh sorry.
+
+[Markus] 14:37:27
+Gut. Adi.
+
+[abiod] 14:37:28
+Okay, um. I want us to look at something on the.
+
+[abiod] 14:37:33
+Documents the one that you created it. Yeah.
+
+[abiod] 14:37:35
+I try to check.
+
+[abiod] 14:37:38
+Some change, using a.
+
+[abiod] 14:37:40
+Judge so like goddess.
+
+[abiod] 14:37:44
+Um. It's just for us to just look through it, so that we give us an idea.
+
+[abiod] 14:37:50
+My idea of what's witching.
+
+[Gunter Kleber] 14:37:52
+Yeah?
+
+[abiod] 14:37:55
+Everything. It's the last, I think, is a Pj. Which page is this.
+
+[abiod] 14:37:59
+Page fourteen and sixteen.
+
+[abiod] 14:38:02
+Fourteen, fifteen, sixteen.
+
+[Gunter Kleber] 14:38:06
+Did you put it? Did I get it right into Markus document?
+
+[Markus] 14:38:10
+Yeah, just at the end.
+
+[abiod] 14:38:10
+He has. Um.
+
+[Markus] 14:38:12
+Just scroll to the bottom and go one or two pages up.
+
+[Gunter Kleber] 14:38:12
+Okay. Okay.
+
+[Gunter Kleber] 14:38:14
+Yeah?
+
+[Gunter Kleber] 14:38:19
+Okay. Got it.
+
+[Markus] 14:38:28
+Yeah, exactly. I'll be.
+
+[Markus] 14:38:31
+This is kind of what we try to visualize.
+
+[Markus] 14:38:39
+The one data source and.
+
+[Markus] 14:38:43
+One or many.
+
+[Markus] 14:38:45
+Dashboards, kind of.
+
+[Markus] 14:39:26
+If you turn this into a.
+
+[Markus] 14:39:28
+Into a Powerpoint deck. We we have a first.
+
+[Markus] 14:39:34
+We have a first version.
+
+[Markus] 14:39:38
+Of an.
+
+[Markus] 14:39:41
+Auf ein Design.
+
+[abiod] 14:39:44
+Okay.
+
+[Markus] 14:39:46
+Maybe ask, you know, to to specifically.
+
+[Markus] 14:39:49
+Design it, and I don't know if you have the Gdpr and Ai act.
+
+[Markus] 14:39:55
+Um Compliancy.
+
+[Markus] 14:39:57
+Built in. I couldn't read it, but that could be one slide or one.
+
+[Markus] 14:40:02
+Thing as well.
+
+[Gunter Kleber] 14:40:04
+Mhm. Oh, I I'm not not uh that far.
+
+[Gunter Kleber] 14:41:33
+But regarding the.
+
+[Gunter Kleber] 14:41:36
+A kind of confidential data which is stored in the rec.
+
+[Gunter Kleber] 14:41:41
+To be run on premises is not a big issue. You can, just to run that locally is no big deal.
+
+[Gunter Kleber] 14:41:47
+But how to communicate properly. Then, with the llm.
+
+[Gunter Kleber] 14:41:54
+Basically, the only thing we can do is hosting an own llm on on site a small one.
+
+[Gunter Kleber] 14:42:01
+Or locally.
+
+[Gunter Kleber] 14:42:03
+Or having kind of a Gdpr Ai, compliant, hosting.
+
+[Gunter Kleber] 14:42:10
+On an external server.
+
+[Gunter Kleber] 14:42:19
+You know what I mean.
+
+[Markus] 14:42:21
+If I'm just thinking of this.
+
+[Gunter Kleber] 14:42:24
+What? What can be the solution? Kind of.
+
+[Markus] 14:42:26
+Yeah, I see it most. I mean.
+
+[Markus] 14:42:29
+Cloud co-pilot they.
+
+[Markus] 14:42:31
+And Chat Gpt. They all use an enterprise environments. So then there has to be.
+
+[Gunter Kleber] 14:42:36
+Yeah?
+
+[Markus] 14:42:38
+A setup, so that it is.
+
+[Markus] 14:42:41
+Compliant with, you know regulations in regards of.
+
+[Markus] 14:42:47
+Um Data Security: Yeah.
+
+[Gunter Kleber] 14:42:49
+Yeah, yeah, exactly. That's one thing we can just give the advice. Kind of you have to be absolutely uh Have your Eye To Get The Right, Provider, Or We Get The Right Provider For You Whatever, Okay, Yeah.
+
+[Markus] 14:42:50
+So.
+
+[Markus] 14:43:00
+Yeah?
+
+[Markus] 14:43:02
+Yeah, because data security is.
+
+[Markus] 14:43:06
+I mean, it needs to be all.
+
+[Markus] 14:43:09
+Um.
+
+[Markus] 14:43:10
+Uh secured. Yeah. So that.
+
+[Markus] 14:43:13
+Nobody else, no hacker or no.
+
+[Markus] 14:43:16
+No other company could access the production data. For example.
+
+[Markus] 14:43:26
+But I I mean that's a.
+
+[Markus] 14:43:29
+That has been solved in so many saas solutions already so.
+
+[Markus] 14:43:34
+I I agree that there has to be a solution.
+
+[Gunter Kleber] 14:43:37
+Yeah?
+
+[Markus] 14:43:37
+I mean, it's just um.
+
+[Markus] 14:43:40
+Secured with hashtags, you know.
+
+[Markus] 14:43:42
+Public private keys and stuff like that that are very long.
+
+[Markus] 14:43:48
+So the data is always encrypted.
+
+[Gunter Kleber] 14:44:02
+Okay.
+
+[Gunter Kleber] 14:44:04
+So in in my idea. That's why I sketched it.
+
+[Gunter Kleber] 14:44:08
+This is kind of my my would be my uh. Besides, some of the comments we have here.
+
+[Gunter Kleber] 14:44:14
+That would be kind of my.
+
+[Gunter Kleber] 14:44:16
+My idea to sketch the first.
+
+[Gunter Kleber] 14:44:20
+Idea what we want to do, and then, later on, go into kind of okay, step one is build up The correct, Database Gather The right Data After We Have That Confirmed.
+
+[Markus] 14:44:27
+Yep.
+
+[Gunter Kleber] 14:44:31
+Reroll out kind of the first dashboard.
+
+[Gunter Kleber] 14:44:36
+In the Uh. Which which just goes to history based data and not in real time, and later on do the Live Thing So to to.
+
+[Gunter Kleber] 14:44:46
+To derive.
+
+[Gunter Kleber] 14:44:48
+This strategy out of the bigger picture. That's that's kind of my approach. How I work. That's why I started, so I don't Know How You Guys Want To Proceed.
+
+[Markus] 14:44:52
+I agree.
+
+[Markus] 14:44:58
+I agree. I mean I.
+
+[Markus] 14:45:00
+I have a different approach, but the same.
+
+[Markus] 14:45:02
+You know the same thing. I would go from the what is needed. You know.
+
+[Markus] 14:45:06
+At the dashboard level, because that defines the data we need, and that defines the.
+
+[Gunter Kleber] 14:45:06
+Yeah?
+
+[Gunter Kleber] 14:45:11
+Yeah?
+
+[Markus] 14:45:12
+Aggregated data structure. And then we look into the data.
+
+[Markus] 14:45:17
+Sources, you know. Where do we get which data, and how can we normalize it? And.
+
+[Markus] 14:45:21
+You know. Put it into the rack.
+
+[Markus] 14:45:24
+So so I but uh it in I'd say those are.
+
+[Markus] 14:45:27
+Can be also parallel tracks. You know, one work with the end user.
+
+[Gunter Kleber] 14:45:32
+Yep.
+
+[Markus] 14:45:32
+Yeah, Together.
+
+[Gunter Kleber] 14:45:34
+Mhm.
+
+[Markus] 14:45:34
+The requirements, and then another. One is.
+
+[Markus] 14:45:38
+Look at it with the it department with Marcus. You know. What are the data sources, the data types in The Data Source and How Can We.
+
+[Markus] 14:45:45
+Integrated. I did in reality in my life. It was always, you know, a dual track.
+
+[Gunter Kleber] 14:45:51
+Yeah? Yeah? Yeah. Yeah. Because you mostly have kind of some kind of.
+
+[Markus] 14:45:51
+Paratrix.
+
+[Gunter Kleber] 14:45:55
+Source, but you also have the requirements on the user side, for sure.
+
+[Markus] 14:45:57
+Yep.
+
+[Markus] 14:45:58
+Yeah?
+
+[Markus] 14:46:00
+There might be tons of production data that nobody wants to.
+
+[Markus] 14:46:03
+See? Yeah.
+
+[Markus] 14:46:06
+Or are not relevant for, for.
+
+[Markus] 14:46:08
+For those people looking at. Yeah?
+
+[Gunter Kleber] 14:46:09
+For the use case exactly.
+
+[Markus] 14:46:11
+And then to normalize it in the rack. And then it, you know, it's just a waste of.
+
+[Gunter Kleber] 14:46:17
+Yep.
+
+[Markus] 14:46:17
+Energy to do it.
+
+[Gunter Kleber] 14:46:19
+Yeah, that that's maybe also important thing, the relevant data.
+
+[Markus] 14:46:25
+Maybe it's also an end-to-end approach, I mean.
+
+[Markus] 14:46:28
+To say, Hey, we take one idea at a time and develop it end to end, instead of, you know, Going Technic and Going Business.
+
+[Markus] 14:46:36
+Yeah, and then getting it together.
+
+[Markus] 14:46:40
+Start with, for example, the quality management.
+
+[Markus] 14:46:44
+And you know.
+
+[Markus] 14:46:46
+Look at it as a as a use case.
+
+[Markus] 14:46:50
+One agent, but.
+
+[Markus] 14:46:51
+Create the database.
+
+[Markus] 14:46:55
+In a way that is, it can be enhanced with other use cases as well.
+
+[Markus] 14:47:01
+Sorry, just thinking out loud here.
+
+[Gunter Kleber] 14:47:03
+So yeah, got you. So basically what you're saying is kind of to to see one outcome here as an end-to-end solution. And.
+
+[Gunter Kleber] 14:47:12
+Start with the first one, but from.
+
+[Markus] 14:47:13
+Yeah?
+
+[Markus] 14:47:15
+Like have it? Exactly. Yeah.
+
+[Gunter Kleber] 14:47:15
+Bottom to the top. Yeah.
+
+[Gunter Kleber] 14:47:18
+And And Then Put The Next Pillar To It The Next One The Next One And Basically The Next One will have some kind of owner lab with the previous one, so you don't have to reconfigure everything in the back end. In the Back End You Just Put On Top.
+
+[Markus] 14:47:20
+Yes.
+
+[Markus] 14:47:26
+Yep.
+
+[Gunter Kleber] 14:47:33
+The things you need, because you already have kind of an existing database, or whatever.
+
+[Markus] 14:47:38
+Yeah, yeah, it'd be.
+
+[Gunter Kleber] 14:47:39
+Yeah. Yeah. Okay?
+
+[Markus] 14:47:41
+Because there's always a risk when you go in layers.
+
+[Markus] 14:47:44
+You know that the.
+
+[Markus] 14:47:46
+The layers do not.
+
+[Markus] 14:47:48
+Are not fit to each other. Yeah, if you go.
+
+[Markus] 14:47:51
+Horizonto. Sorry if you go vertical.
+
+[Markus] 14:47:53
+Like one use case end to end.
+
+[Gunter Kleber] 14:47:54
+Yeah?
+
+[Markus] 14:47:56
+The challenges that you don't think big enough, you know, and the data structure will not.
+
+[Markus] 14:48:00
+Keep up with the um.
+
+[Markus] 14:48:04
+Requirements over time for the other use cases. So it's always an.
+
+[Markus] 14:48:07
+You know trade-off.
+
+[Gunter Kleber] 14:48:10
+Yeah, but I think the data can expand. That's not an issue, because if you, if you go in a Vertical Way, I Think you always have To.
+
+[Markus] 14:48:14
+Yeah?
+
+[Gunter Kleber] 14:48:21
+What I think is convenient. You can.
+
+[Gunter Kleber] 14:48:25
+You have one.
+
+[Gunter Kleber] 14:48:28
+Defined.
+
+[Gunter Kleber] 14:48:30
+Kind of requirement task which shall run in the end.
+
+[Markus] 14:48:34
+Exactly, and you have.
+
+[Gunter Kleber] 14:48:34
+So And if you, if you've got that done, you can make The check Mark, And say, Okay, That's Done it runs on London. You have kind of the agent in between. You got the rec. And on the back side you have the Input Data, So Okay, Nice.
+
+[Markus] 14:48:40
+Yes.
+
+[Gunter Kleber] 14:48:48
+If you got that one running that's fine. So, and you go then from kind of the Qm. Dashboard to The Production, Dashboard for Example.
+
+[Markus] 14:48:55
+Yeah?
+
+[Gunter Kleber] 14:48:56
+So Uh okay. There is already Some Kind Of Data In The Rack But You Have To Get Them Machine three, four, five running into the rack in the correct one. So you got deadline. Okay, its running check. But you don't have to Kind Of Put Everything In The Rack Once Again Because A Few Might Be Already In The Qm.
+
+[Markus] 14:49:17
+Yeah, exactly.
+
+[Gunter Kleber] 14:49:18
+Pillar by pillar, but end to end. Yeah. But that kind of.
+
+[Gunter Kleber] 14:49:24
+The hybrid approach is, we have an overall.
+
+[Gunter Kleber] 14:49:27
+Picture what we want to achieve, which is over there, but kind of the rollout.
+
+[Markus] 14:49:29
+Yep exactly.
+
+[Gunter Kleber] 14:49:33
+Is defined in a vertical pillar. That's also fine. That's also fine.
+
+[Markus] 14:49:36
+Yep.
+
+[Markus] 14:49:39
+And the the hard part is, you know what's the.
+
+[Markus] 14:49:41
+First not to crack. Yeah.
+
+[Markus] 14:49:43
+So we can go either.
+
+[Gunter Kleber] 14:49:44
+Mhm.
+
+[Markus] 14:49:46
+What's the what has the heaviest impact? The heaviest business impact.
+
+[Markus] 14:49:51
+And machine stops. You know nobody knows what the root cause error is. You know. Nobody knows that the machine Stops At First First Of All, Then There's You Know The The.
+
+[Markus] 14:50:00
+Course, error search that takes long times and.
+
+[Markus] 14:50:04
+You know its margin. Yeah, that could be.
+
+[Markus] 14:50:07
+The prioritization like business impact.
+
+[Markus] 14:50:09
+Or is it low hanging fruits.
+
+[Markus] 14:50:11
+What is the easiest one to do. So we see something.
+
+[Gunter Kleber] 14:50:12
+Yeah?
+
+[Markus] 14:50:15
+You know. Quick, win.
+
+[Gunter Kleber] 14:50:16
+And it's keep it running.
+
+[Markus] 14:50:18
+And creating exactly creating value.
+
+[Markus] 14:50:21
+So that is always the hard part.
+
+[Markus] 14:50:23
+And that is the most political.
+
+[Gunter Kleber] 14:50:27
+Yeah?
+
+[Gunter Kleber] 14:50:31
+Okay.
+
+[Markus] 14:50:33
+But you're absolutely right. I think. What what Adi put together in writing, and.
+
+[Markus] 14:50:38
+Your image, I think that is, that is.
+
+[Gunter Kleber] 14:50:38
+Hmm.
+
+[Markus] 14:50:42
+The big picture. Yeah. So that is.
+
+[Gunter Kleber] 14:50:44
+So exactly. That's the bigger picture. Then the big question is just because I doubt that some.
+
+[Gunter Kleber] 14:50:50
+Chat, Gpt. And Cloud gives me a perfect pitch deck, which is then, as I expected right now in my head.
+
+[Gunter Kleber] 14:51:09
+Because basically, I want a shiny picture of that.
+
+[Gunter Kleber] 14:51:15
+And then, later on, refer to that in the rollout.
+
+[Gunter Kleber] 14:51:19
+Compared to the the bullet points which are they, provided they are quite good.
+
+[Gunter Kleber] 14:51:25
+That would be okay.
+
+
+
