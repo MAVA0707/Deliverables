@@ -1,0 +1,82 @@
+ticket_id,submitted_at,raw_text
+TKT-1051,2024-01-06,Payment failed but I was still locked out of my account. Please sort this.
+TKT-1018,2024-01-08,Can we get a public roadmap so we know what's coming next?
+TKT-1045,2024-01-12,My invoice shows an amount I don't recognise. Can someone explain charge #2.3.1 on my account?
+TKT-1016,2024-01-15,I can't log in — it says my password is wrong but I just reset it.
+TKT-1021,2024-01-21,How do I transfer ownership of an account to a colleague?
+TKT-1033,2024-02-01,I want to downgrade my plan and need a refund for the unused portion.
+TKT-1058,2024-02-03,The discount code I applied at checkout isn't reflected on my bill.
+TKT-1060,2024-02-03,Would love a widget I can embed directly on our help center page.
+TKT-1034,2024-02-05,Do you have reseller or affiliate programme options?
+TKT-1059,2024-02-05,Can you add SSO support for Okta? Our IT team requires it.
+TKT-1015,2024-02-06,Can you send me a consolidated invoice for the entire year?
+TKT-1002,2024-02-09,I've been charged twice for my subscription this month. Please refund the duplicate charge immediately.
+TKT-1022,2024-02-10,Does the product support Chinese and Japanese character sets?
+TKT-1001,2024-02-17,Would love a widget I can embed directly on our help center page.
+TKT-1075,2024-02-19,I need to switch from monthly to annual billing — how do I do that without losing my data?
+TKT-1029,2024-02-22,The bulk import tool fails silently with no error message.
+TKT-1043,2024-02-24,Do you have reseller or affiliate programme options?
+TKT-1003,2024-03-09,I upgraded mid-cycle — how should the prorated amount work exactly?
+TKT-1026,2024-03-12,Could you add CSV export so we can pull data into Excel?
+TKT-1056,2024-03-24,Multi-language support would help us serve our EU customers better.
+TKT-1063,2024-03-25,The dark mode setting resets every time I close the browser.
+TKT-1050,2024-03-29,The auto-renewal fired even though I had turned it off in settings.
+TKT-1065,2024-04-09,The bulk import tool fails silently with no error message.
+TKT-1037,2024-04-11,We'd love an API endpoint for bulk status updates.
+TKT-1078,2024-04-16,The webhook I set up isn't firing for new events.
+TKT-1008,2024-04-22,The API is returning 401 Unauthorized even though my key is correct.
+TKT-1025,2024-04-23,The discount code I applied at checkout isn't reflected on my bill.
+TKT-1017,2024-05-01,It would be amazing to have a dark mode for the mobile app.
+TKT-1020,2024-05-01,What's your uptime SLA for enterprise plans?
+TKT-1023,2024-05-05,The product has improved so much since last year. Keep up the great work!
+TKT-1046,2024-05-05,The discount code I applied at checkout isn't reflected on my bill.
+TKT-1000,2024-05-07,I'd like to request a security questionnaire for vendor approval.
+TKT-1027,2024-05-08,Could you add CSV export so we can pull data into Excel?
+TKT-1014,2024-05-10,I was promised a 20% loyalty discount but my invoice shows full price.
+TKT-1036,2024-05-11,The dark mode setting resets every time I close the browser.
+TKT-1041,2024-05-11,The API documentation is thorough and easy to follow. Great job.
+TKT-1006,2024-05-19,Multi-language support would help us serve our EU customers better.
+TKT-1052,2024-05-19,The export to PDF function produces a blank document.
+TKT-1040,2024-05-26,Can we get a public roadmap so we know what's coming next?
+TKT-1053,2024-05-30,The API is returning 401 Unauthorized even though my key is correct.
+TKT-1057,2024-06-04,Is there an educational discount for universities?
+TKT-1010,2024-06-12,Video playback stutters badly on Chrome but works fine on Firefox.
+TKT-1035,2024-06-26,We're evaluating your tool — can we get a 30-day extended trial?
+TKT-1031,2024-07-04,I'm a journalist writing about AI tools — can I get a press contact?
+TKT-1049,2024-07-28,My data from the old account didn't migrate over during the merge.
+TKT-1068,2024-07-29,Do you offer on-premise or self-hosted deployment?
+TKT-1028,2024-07-31,A Gantt chart view would make project tracking much easier.
+TKT-1047,2024-07-31,Payment failed but I was still locked out of my account. Please sort this.
+TKT-1032,2024-08-02,A Gantt chart view would make project tracking much easier.
+TKT-1079,2024-08-07,Can I get a receipt for the payment made on the 3rd?
+TKT-1039,2024-08-08,My free trial ended but I was never asked to confirm a paid plan.
+TKT-1012,2024-08-16,I've been charged twice for my subscription this month. Please refund the duplicate charge immediately.
+TKT-1042,2024-08-18,The discount code I applied at checkout isn't reflected on my bill.
+TKT-1038,2024-08-21,My custom domain stopped resolving after I updated the CNAME record.
+TKT-1013,2024-08-23,The app crashes every time I try to upload a file larger than 10 MB.
+TKT-1048,2024-09-07,I cannot connect the integration to my Slack workspace.
+TKT-1077,2024-09-11,The refund I requested two weeks ago still hasn't appeared on my card.
+TKT-1062,2024-09-18,Why did the price go up from $Sam to $Sam with no email warning?
+TKT-1064,2024-09-21,My custom domain stopped resolving after I updated the CNAME record.
+TKT-1071,2024-10-02,I tried to cancel and was still charged. Please explain.
+TKT-1074,2024-10-06,I need to move my subscription to a different email address.
+TKT-1005,2024-10-12,I need a formal data processing agreement (DPA) for GDPR compliance.
+TKT-1069,2024-10-22,I can't log in — it says my password is wrong but I just reset it.
+TKT-1070,2024-10-27,Please consider adding time-tracking built into each ticket.
+TKT-1061,2024-10-30,We'd love an API endpoint for bulk status updates.
+TKT-1066,2024-11-04,Your support agent 29.99 solved my issue in under 5 minutes. Amazing!
+TKT-1007,2024-11-10,Your changelog is detailed and transparent — rare to see that.
+TKT-1080,2024-11-13,I was double-billed in December and still waiting for the refund.
+TKT-1076,2024-11-19,I'm getting a CORS error when calling your API from my frontend.
+TKT-1019,2024-11-23,The bulk import tool fails silently with no error message.
+TKT-1044,2024-12-03,I've been charged twice for my subscription this month. Please refund the duplicate charge immediately.
+TKT-1004,2024-12-07,I recommended your tool to three colleagues this week — love it.
+TKT-1030,2024-12-07,The API documentation is thorough and easy to follow. Great job.
+TKT-1055,2024-12-08,I'm a journalist writing about AI tools — can I get a press contact?
+TKT-1024,2024-12-12,We migrated from a competitor and the import was completely painless.
+TKT-1011,2024-12-13,The product has improved so much since last year. Keep up the great work!
+TKT-1067,2024-12-15,I recommended your tool to three colleagues this week — love it.
+TKT-1072,2024-12-20,My company needs a PO number on the invoice — is that possible?
+TKT-1009,2024-12-23,Password reset emails are going to spam even though I've whitelisted the domain.
+TKT-1054,2024-12-26,Your support agent Maria solved my issue in under 5 minutes. Amazing!
+TKT-1073,2024-12-28,The pricing page says enterprise starts at $99 but I was quoted $129.
