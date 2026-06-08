@@ -1,0 +1,6 @@
+# Week 7 · Day 5 — example evaluation dashboard (extra material)
+pandas
+numpy
+plotly
+panel            # HoloViz Panel (pulls in bokeh)
+kaleido          # optional: static PNG export for the Plotly version
