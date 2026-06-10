@@ -4221,7 +4221,7 @@ footer strong { color: var(--ink); font-weight: 500; }
   <p class="byline">Markus von Aschoff · markus@vonaschoff.de · June 2026</p>
 </header>
 
-<!-- Section 1: Headlines -->
+<!-- Section 1: Headlines 
 <section>
   <div class="section-head">
     <span class="section-number">01</span>
@@ -4250,12 +4250,12 @@ footer strong { color: var(--ink); font-weight: 500; }
       <div class="kpi-detail">22.0% of all customers have left since January 2023.</div>
     </div>
   </div>
-</section>
+</section>-->
 
-<!-- Section 2: When does churn happen -->
+<!-- Section 1: When does churn happen -->
 <section>
   <div class="section-head">
-    <span class="section-number">02</span>
+    <span class="section-number">01</span>
     <h2>When does churn happen?</h2>
   </div>
   <p class="section-deck">Tenure at the moment of cancellation, and the monthly count of churn events. Most customers who leave do so very early.</p>
@@ -4277,10 +4277,10 @@ footer strong { color: var(--ink); font-weight: 500; }
   </div>
 </section>
 
-<!-- Section 3: Where does churn concentrate -->
+<!-- Section 2: Where does churn concentrate -->
 <section>
   <div class="section-head">
-    <span class="section-number">03</span>
+    <span class="section-number">02</span>
     <h2>Where does churn concentrate?</h2>
   </div>
   <p class="section-deck">Two views of the same data: rate of churn (left) and absolute dollars lost (right). The two do not point at the same segment.</p>
@@ -4302,10 +4302,10 @@ footer strong { color: var(--ink); font-weight: 500; }
   </div>
 </section>
 
-<!-- Section 4: Why -->
+<!-- Section 3: Why -->
 <section>
   <div class="section-head">
-    <span class="section-number">04</span>
+    <span class="section-number">03</span>
     <h2>Why customers say they leave</h2>
   </div>
   <p class="section-deck">Self-reported cancellation reasons. These come from the exit survey and are imperfect (customers under-report price sensitivity, for instance), but the distribution is informative.</p>
@@ -4327,10 +4327,10 @@ footer strong { color: var(--ink); font-weight: 500; }
   </div>
 </section>
 
-<!-- Section 5: The signal -->
+<!-- Section 4: The signal 
 <section>
   <div class="section-head">
-    <span class="section-number">05</span>
+    <span class="section-number">04</span>
     <h2>What can we actually predict?</h2>
   </div>
   <p class="section-deck">An honest test of which signals in this data would be useful for early warning. Some are strong. Two often-assumed signals are weak.</p>
@@ -4389,27 +4389,27 @@ footer strong { color: var(--ink); font-weight: 500; }
         <div class="signal-note">Plan tier is not a signal. Do not use plan as a risk feature.</div>
       </div>
     </div>
-  </div>
+  </div>-->
 
-  <div class="insight">
+ <!-- <div class="insight">
     <strong>Implication for the proposal</strong>
     The two strong signals (tenure and industry) work for a simple rule-based health score on day one. The two weak signals (usage drop, ticket spike) mean the ML model cannot rely on them alone. This is exactly the Phase 1 data audit that the proposal called for, and it argues for the rule-based fallback being the realistic starting point.
   </div>
 </section>
 
-<!-- Section 6: Action -->
+ Section 5: Action 
 <div class="action">
   <div class="action-eyebrow">What to do with this</div>
   <h3>Start with new accounts in DevTools. That's where the loss is.</h3>
   <p>The data points to one concrete intervention before any ML work: a structured 90-day onboarding programme for new accounts, with DevTools customers prioritised. This costs nothing to start, addresses the segment where the strongest signals concentrate, and produces the training data the model needs in Phase 2.</p>
   <p>The fuller plan, costs, and timeline are in the main proposal. This dashboard is the evidence behind that plan.</p>
-</div>
+</div>  -->
 
-<!-- Footer -->
+<!-- Footer 
 <footer>
-  <strong>Data source.</strong> 500 customer accounts, 4,514 active subscriptions, 600 churn events, 25,000 feature usage records, and 2,000 support tickets, covering January 2023 to December 2024.<br>
-  <strong>Methodology.</strong> Tenure is the days between signup_date and first churn_date per account. Annual churn rate is annualised from lifetime cancellation over the 2-year window. ARR-at-risk uses the 4% monthly SMB SaaS benchmark from Optifai 2026 applied to current active ARR. Signal strength is qualitative based on the size of the difference between churned and retained populations.<br>
- </footer>
+  <strong>Data source:</strong> 500 customer accounts, 4,514 active subscriptions, 600 churn events, 25,000 feature usage records, and 2,000 support tickets, covering January 2023 to December 2024.<br>
+  <strong>Methodology:</strong> Tenure is the days between signup_date and first churn_date per account. Annual churn rate is annualised from lifetime cancellation over the 2-year window. ARR-at-risk uses the 4% monthly SMB SaaS benchmark from Optifai 2026 applied to current active ARR. Signal strength is qualitative based on the size of the difference between churned and retained populations.<br>
+ </footer>-->
 
 </div>
 
