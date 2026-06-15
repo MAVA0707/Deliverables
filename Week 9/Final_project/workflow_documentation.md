@@ -1,172 +1,155 @@
-# n8n Workflow: Weekly Churn Risk Digest (self-contained)
+# n8n Workflow: Weekly Churn Risk Digest
 
-Sends a ranked list of at-risk accounts to Slack every Monday morning, with a plain-English explanation for each account written by Claude.
+Posts a ranked list of at-risk Ravenstack accounts to Slack every Monday morning, each with a plain-English reason written by Claude.
 
-**This version runs entirely inside n8n.** There is no external scoring API and no localhost dependency. The scoring logic lives in a Code node, and the account data is read from URLs. This is the right setup when n8n is hosted on a remote server that cannot reach your local machine.
-
----
-
-## What changed from the API version
-
-The earlier version called a Python scoring API at `http://localhost:5678`. That only works when n8n runs on the same machine as the API. When n8n is on a remote server, `localhost` points at the n8n server itself, not at your laptop, so the call fails.
-
-This version removes that dependency entirely:
-
-| Old (API version) | New (self-contained) |
-|---|---|
-| n8n calls `http://localhost:5678/api/churn/top-accounts` | n8n fetches the CSV files from URLs |
-| Python Flask API does the scoring | A Code node does the scoring in JavaScript |
-| Needs your laptop running the API | Needs nothing but n8n and the data URLs |
-
-The downstream half (Claude explanation, Slack formatting, post) is unchanged.
+The workflow is fully self-contained. The scoring runs inside n8n, the data is read from public URLs, and nothing depends on your local machine. It is built to run on hosted n8n (n8n Cloud) where environment variables and local APIs are not available.
 
 ---
 
-## What it does
+## How it works
 
 ```
 Every Monday 8AM
-    -> Fetch accounts CSV      (HTTP, from DATA_BASE_URL)
-    -> Fetch subscriptions CSV
-    -> Fetch usage CSV         (continues even if this large file fails)
-    -> Score Accounts          (Code node: parse, join, score top 20)
-    -> IF count > 0
-        YES -> Build prompt -> Claude -> Format Slack blocks -> Post digest
-        NO  -> Post "all clear" to Slack
+    -> Fetch Accounts        (GET csv from GitHub raw URL)
+    -> Fetch Subscriptions   (GET csv)
+    -> Fetch Usage           (GET csv; continues even if this large file fails)
+    -> Score Accounts        (Code node: parse, join, score, return top 20)
+    -> Any Accounts Flagged? (IF count > 0)
+        YES -> Build LLM Prompt -> Generate Alert Text (Claude) -> Build Slack Blocks -> Post Digest to Slack
+        NO  -> Post All-Clear to Slack
 ```
+
+11 nodes. The scoring replaces the old external Python API, so there is no localhost dependency.
+
+---
+
+## What you must fill in after importing
+
+The workflow imports with placeholder values in three places. Replace each one:
+
+| Where | Placeholder | Replace with |
+|---|---|---|
+| Generate Alert Text node, `x-api-key` header | `YOUR_ANTHROPIC_API_KEY` | Your Anthropic API key |
+| Post Digest to Slack node, URL field | `YOUR_SLACK_WEBHOOK_URL` | Your Slack webhook URL |
+| Post All-Clear to Slack node, URL field | `YOUR_SLACK_WEBHOOK_URL` | The same Slack webhook URL |
+
+There are no environment variables to set. Everything else is already configured.
 
 ---
 
 ## Setup
 
-### Step 1: Put the CSV data somewhere n8n can reach
+### Step 1: Confirm the data URLs resolve
 
-The Code node needs three files: `ravenstack_accounts.csv`, `ravenstack_subscriptions.csv`, and `ravenstack_feature_usage.csv`.
-
-The simplest option is your GitHub repo. GitHub serves raw file URLs that any server can fetch. For a repo at `github.com/USER/REPO` with the CSVs in a folder, the raw URL base looks like:
+The three Fetch nodes read the CSVs from your GitHub repo's raw URLs, already hardcoded to:
 
 ```
-https://raw.githubusercontent.com/USER/REPO/main/path/to/folder
+https://raw.githubusercontent.com/MAVA0707/Deliverables/main/Week%209/Final_project/data/
 ```
 
-For example, if the files sit in `Week 8/Project 5`:
+Before running, paste this into a browser to confirm it loads CSV text:
 
 ```
-https://raw.githubusercontent.com/MAVA0707/Deliverables/main/Week%208/Project%205
+https://raw.githubusercontent.com/MAVA0707/Deliverables/main/Week%209/Final_project/data/ravenstack_accounts.csv
 ```
 
-(Spaces in the path become `%20`.)
+If you see the CSV, the Fetch nodes will work. If you get "404: Not Found", the branch or path is wrong (try `master` instead of `main`, and check the exact folder name). Fix the URL in all three Fetch nodes if needed. The repo must be public.
 
-Test a URL by pasting it plus `/ravenstack_accounts.csv` into a browser. If you see the CSV text, n8n can reach it too.
-
-The repo must be public for raw URLs to work without authentication. If it is private, host the CSVs somewhere else n8n can reach (an S3 bucket with public read, a small web server, or a cloud storage public link).
-
-### Step 2: Set environment variables in n8n
-
-In n8n, go to **Settings -> Environment Variables** and add:
-
-| Variable | Value |
-|---|---|
-| `DATA_BASE_URL` | The folder URL from Step 1, with no trailing slash |
-| `ANTHROPIC_API_KEY` | Your Anthropic API key |
-| `SLACK_WEBHOOK_URL` | Your Slack incoming webhook URL |
-
-`SCORING_API_URL` is no longer needed. You can remove it.
-
-### Step 3: Create a Slack Incoming Webhook
+### Step 2: Create a Slack Incoming Webhook
 
 1. Go to api.slack.com/apps -> Create an app -> From scratch
-2. Add feature: Incoming Webhooks -> Activate
-3. Click "Add New Webhook to Workspace" -> pick the `#customer-success` channel
-4. Copy the webhook URL into `SLACK_WEBHOOK_URL`
+2. Left sidebar -> Incoming Webhooks -> toggle Activate to On
+3. Add New Webhook to Workspace -> pick the #customer-success channel -> Allow
+4. Copy the webhook URL (looks like https://hooks.slack.com/services/T.../B.../xxxx)
+
+### Step 3: Get an Anthropic API key
+
+From console.anthropic.com -> API Keys -> create a key. Copy it.
 
 ### Step 4: Import the workflow
 
-1. In n8n, click **+** -> **Import from file**
-2. Select `churn_digest_workflow.json`
-3. It imports as inactive. Click **Activate** when ready.
+1. In n8n, click + -> Import from file
+2. Select churn_digest_workflow.json
+3. It imports inactive.
 
-### Step 5: Test it manually
+### Step 5: Paste in your secrets
 
-Click **Execute Workflow**. Watch each node turn green. Check Slack for the digest. If it arrives, activate the schedule.
+- Open Generate Alert Text. In the x-api-key header, replace YOUR_ANTHROPIC_API_KEY with your key.
+- Open Post Digest to Slack. In the URL field, replace YOUR_SLACK_WEBHOOK_URL with your webhook URL.
+- Open Post All-Clear to Slack. Replace YOUR_SLACK_WEBHOOK_URL with the same webhook URL.
+
+### Step 6: Test, then activate
+
+Click Execute Workflow. Watch the nodes turn green left to right and check #customer-success for the digest. When it works, toggle the workflow Active to enable the Monday 8AM schedule.
 
 ---
 
-## The reference date (important for the demo)
+## Important: the Slack nodes use NO authentication
 
-The Ravenstack dataset covers January 2023 to December 2024. To produce meaningful scores, the Code node anchors "today" to the end of the data:
+Both Slack nodes are plain HTTP Request nodes posting to an Incoming Webhook. The webhook URL is the only credential, and it lives in the URL field.
+
+In each Slack node, Authentication must be set to **None**. If you see "credentials not found", a node still has Authentication pointing at a credential. Switch it to None.
+
+Each Slack node is configured as:
+- Method: POST
+- Authentication: None
+- Send Body: on
+- Body Content Type: JSON
+- Specify Body: Using JSON
+- JSON: `{{ $json }}` for the digest; a fixed `{ "text": "..." }` for the all-clear
+
+---
+
+## Important: the reference date
+
+The Ravenstack dataset covers January 2023 to December 2024. To produce meaningful scores on this static data, the Score Accounts node anchors "today" to the end of the data:
 
 ```javascript
 const TODAY = new Date('2024-12-31T00:00:00Z');
 ```
 
-If you run the workflow with this static dataset, leave this as is. **With live production data, change that line to:**
+Leave this as is for the demo data. With live production data, change that one line to:
 
 ```javascript
 const TODAY = new Date();
 ```
 
-You will find it near the top of the "Score Accounts" Code node, clearly commented.
+It is near the top of the Score Accounts Code node, clearly commented.
 
 ---
 
 ## How the risk score is calculated
 
-The model is rule-based (no ML in Phase 1). Every active, non-churned account is scored:
+Rule-based model (no ML in Phase 1). Every active, non-churned account is scored:
 
 | Signal | Points | Reason |
 |---|---|---|
-| Tenure under 30 days | +40 | Highest churn concentration: 53% of churn in first 90 days |
-| Tenure 30-90 days | +25 | Still within the high-risk onboarding window |
+| Tenure under 30 days | +40 | 53% of churn happens in the first 90 days |
+| Tenure 30-90 days | +25 | Still inside the high-risk onboarding window |
 | DevTools industry | +25 | 31% lifetime churn, 2x the next-highest segment |
 | Usage drop over 50% | +15 | Weak signal but present in 18% of churned accounts |
 | Usage drop 30-50% | +8 | |
 | Month-to-month billing | +10 | Annual contracts churn at lower rates |
-| Enterprise plan with under 5 seats | +10 | Possible mismatch between plan and usage |
+| Enterprise plan, under 5 seats | +10 | Possible mismatch between plan and usage |
 
-Maximum score: 100. Accounts scoring 0 are not flagged.
+Maximum 100. Accounts scoring 0 are not flagged. The top 20 by score are returned each week.
 
 ---
 
 ## Resilience: the usage file is optional
 
-`ravenstack_feature_usage.csv` is the largest file (25,000 rows). The "Fetch Usage" node has **continueOnFail** turned on. If that file is slow or unreachable, the workflow does not crash:
+ravenstack_feature_usage.csv is the largest file (25,000 rows). The Fetch Usage node has continueOnFail turned on. If that file is slow or unreachable, the workflow does not crash:
 
-- The Code node detects the missing usage data
+- Score Accounts detects the missing usage data
 - It scores on the remaining signals (tenure, industry, billing, seats)
-- It drops the usage-drop and last-login signals from the alerts rather than showing wrong values
+- It drops the usage-drop and last-login lines from the alerts rather than showing wrong values
 - The digest still goes out
 
-The output includes a `usage_signal_used` flag so you can tell whether usage data was part of that week's scoring.
+The scoring output includes a usage_signal_used flag so you can tell whether usage data was part of that week's run.
 
 ---
 
-## Interpreting the Slack output
 
-```
-Weekly Churn Risk Digest
-Monday, 8 June 2026  -  12 accounts flagged from 390 active  -  Model: rule-based v1
-------------------------------------------------------------
-Company_321                                Score: 80/100
-DevTools - Basic - $171/mo - France        filled-bar
-  New DevTools account, 6 days old, no login in 36 days. Call before Day 30.
-------------------------------------------------------------
-```
+## What changes when the ML model arrives (Phase 3)
 
-**Score bands:** 65+ call this week, 40-64 monitor, below 40 low priority.
-
----
-
-## Troubleshooting
-
-**A fetch node fails with 404.** The URL is wrong. Test `DATA_BASE_URL` + `/ravenstack_accounts.csv` in a browser. Check for `%20` in place of spaces and that the repo is public.
-
-**"Score Accounts" returns 0 accounts.** Either all fetches failed (check the fetch nodes' output) or the CSV column names do not match. The code expects the original Ravenstack column names.
-
-**Every account shows a huge "days old" or no recent login.** The reference date is wrong for your data. Check the `TODAY` line in the Score Accounts node.
-
-**The Anthropic call times out.** Increase the `timeout` in the "Generate Alert Text" node. Default is 30 seconds.
-
-**Slack gets nothing.** Check `SLACK_WEBHOOK_URL` is set and the webhook still points at the right channel.
-
-**The workflow is slow.** Fetching and parsing the 25,000-row usage file takes a few seconds. This is normal for a weekly job. If it consistently times out on n8n Cloud's execution limit, host a pre-aggregated smaller usage file, or remove the "Fetch Usage" node entirely. The workflow falls back to the strong signals automatically.
+The Score Accounts node holds the rule-based logic. In Phase 3 you can either replace that JavaScript with the trained model's output, or move scoring back to a hosted Python API (the scoring_api.py file) and have n8n call it over a real URL. Either way, the downstream half (prompt, Claude, Slack) does not change.
