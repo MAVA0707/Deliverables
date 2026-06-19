@@ -1,0 +1,381 @@
+{
+  "name": "Ravenstack — Weekly Churn Risk Digest v3",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "872c68e5-71be-4289-883e-c2e336e01007",
+      "name": "Every Monday 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1248,
+        112
+      ],
+      "notes": "Fires at 08:00 every Monday. Adjust the cron expression for your timezone."
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/MAVA0707/Deliverables/main/Week%209/Final_project/data/ravenstack_accounts.csv",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "350ccd59-90cc-43fc-9244-d3c6582e6e89",
+      "name": "Fetch Accounts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1040,
+        112
+      ],
+      "notes": "Fetches ravenstack_accounts.csv as text from the GitHub raw URL. No env var needed."
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/MAVA0707/Deliverables/main/Week%209/Final_project/data/ravenstack_subscriptions.csv",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "1b2f7fa1-326d-4c0e-8357-ed8039973df5",
+      "name": "Fetch Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -848,
+        112
+      ],
+      "notes": "Fetches ravenstack_subscriptions.csv as text from the GitHub raw URL. No env var needed."
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/MAVA0707/Deliverables/main/Week%209/Final_project/data/ravenstack_feature_usage.csv",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "7e0416dd-9b57-4234-b5d9-ea9c9e6e4e11",
+      "name": "Fetch Usage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -640,
+        112
+      ],
+      "continueOnFail": true,
+      "notes": "Fetches ravenstack_feature_usage.csv as text from the GitHub raw URL. No env var needed. continueOnFail is on: if this large file is unreachable, scoring still runs on the other signals."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== Ravenstack churn scoring — embedded in n8n =====\n// Replaces the external Python scoring API so nothing depends on localhost.\n// Reads the CSVs fetched by the upstream HTTP nodes, scores every active\n// account with the Phase 1 rule-based model, and returns the top 20.\n\n// --- Reference date ---\n// The Ravenstack dataset runs Jan 2023 to Dec 2024, so for the demo we anchor\n// \"today\" to the end of the data. With live production data, change this line to:\n//   const TODAY = new Date();\nconst TODAY = new Date('2024-12-31T00:00:00Z');\n\nconst LIMIT = 20;\n\n// --- Minimal CSV parser (handles quoted fields and CRLF) ---\nfunction parseCSV(text) {\n  if (!text || typeof text !== 'string') return [];\n  const rows = [];\n  let row = [], field = '', inQuotes = false;\n  for (let i = 0; i < text.length; i++) {\n    const c = text[i], n = text[i + 1];\n    if (inQuotes) {\n      if (c === '\"' && n === '\"') { field += '\"'; i++; }\n      else if (c === '\"') { inQuotes = false; }\n      else { field += c; }\n    } else {\n      if (c === '\"') { inQuotes = true; }\n      else if (c === ',') { row.push(field); field = ''; }\n      else if (c === '\\n') { row.push(field); rows.push(row); row = []; field = ''; }\n      else if (c === '\\r') { /* ignore */ }\n      else { field += c; }\n    }\n  }\n  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }\n  if (rows.length === 0) return [];\n  const header = rows[0].map(h => h.trim());\n  return rows.slice(1)\n    .filter(r => r.length === header.length)\n    .map(r => { const o = {}; header.forEach((h, i) => o[h] = r[i]); return o; });\n}\n\n// --- Read CSV text out of the upstream HTTP nodes ---\nfunction getText(nodeName) {\n  try {\n    const j = $(nodeName).first().json;\n    if (typeof j === 'string') return j;\n    if (j && typeof j.data === 'string') return j.data;\n    if (j && typeof j.body === 'string') return j.body;\n    return '';\n  } catch (e) {\n    return '';\n  }\n}\n\nconst accounts = parseCSV(getText('Fetch Accounts'));\nconst subs     = parseCSV(getText('Fetch Subscriptions'));\nlet usageRows  = parseCSV(getText('Fetch Usage'));\nconst usageAvailable = usageRows.length > 0;\n\n// --- Helpers ---\nfunction toDate(s) {\n  if (!s) return null;\n  const d = new Date(s);\n  return isNaN(d.getTime()) ? null : d;\n}\nfunction daysBetween(a, b) { return Math.floor((a.getTime() - b.getTime()) / 86400000); }\nfunction isChurned(v) { return v === 'True' || v === 'true' || v === '1'; }\n\n// --- Most recent active subscription per account ---\nconst latest = {};\nfor (const s of subs) {\n  if (s.end_date && s.end_date.trim() !== '') continue;   // skip ended subs\n  const start = toDate(s.start_date);\n  const cur = latest[s.account_id];\n  if (!cur || (start && toDate(cur.start_date) && start > toDate(cur.start_date))) {\n    latest[s.account_id] = s;\n  }\n}\n\n// --- Usage aggregation (only if the usage file loaded) ---\nconst subToAccount = {};\nfor (const s of subs) subToAccount[s.subscription_id] = s.account_id;\n\nconst u30 = {}, u90 = {}, lastSeen = {};\nif (usageAvailable) {\n  const cut30 = new Date(TODAY.getTime() - 30 * 86400000);\n  const cut90 = new Date(TODAY.getTime() - 90 * 86400000);\n  for (const u of usageRows) {\n    const aid = subToAccount[u.subscription_id];\n    if (!aid) continue;\n    const d = toDate(u.usage_date);\n    if (!d) continue;\n    const cnt = parseFloat(u.usage_count) || 0;\n    if (d > cut90) u90[aid] = (u90[aid] || 0) + cnt;\n    if (d > cut30) u30[aid] = (u30[aid] || 0) + cnt;\n    if (!lastSeen[aid] || d > lastSeen[aid]) lastSeen[aid] = d;\n  }\n}\nusageRows = null;  // free memory\n\n// --- Score every active, non-churned account ---\nconst results = [];\nlet totalScored = 0;\n\nfor (const a of accounts) {\n  if (isChurned(a.churn_flag)) continue;\n  totalScored++;\n\n  const sub = latest[a.account_id] || {};\n  const signup = toDate(a.signup_date);\n  const tenure = signup ? daysBetween(TODAY, signup) : 9999;\n\n  let score = 0;\n  const signals = [];\n\n  if (tenure < 30)      { score += 40; signals.push('brand-new account — ' + tenure + (tenure === 1 ? ' day old' : ' days old')); }\n  else if (tenure < 90) { score += 25; signals.push('new account — ' + tenure + ' days old'); }\n\n  if (a.industry === 'DevTools') { score += 25; signals.push('DevTools segment (highest churn rate in the data)'); }\n\n  let daysSince = null;\n  if (usageAvailable) {\n    const base = (u90[a.account_id] || 0) / 3;\n    const recent = u30[a.account_id] || 0;\n    const ratio = base > 0 ? recent / base : 1.0;\n    if (ratio < 0.5)      { score += 15; signals.push('product usage down ' + Math.round((1 - ratio) * 100) + '% versus the prior period'); }\n    else if (ratio < 0.7) { score += 8;  signals.push('product usage down ' + Math.round((1 - ratio) * 100) + '% versus the prior period'); }\n    if (lastSeen[a.account_id]) {\n      daysSince = daysBetween(TODAY, lastSeen[a.account_id]);\n      if (daysSince > 7) signals.push('last login ' + daysSince + ' days ago');\n    }\n  }\n\n  const billing = (sub.billing_frequency || '').toLowerCase();\n  if (billing === 'monthly') { score += 10; signals.push('month-to-month contract (no annual commitment)'); }\n\n  const seats = parseInt(sub.seats, 10) || 0;\n  if (sub.plan_tier === 'Enterprise' && seats < 5) { score += 10; signals.push('Enterprise plan but fewer than 5 seats'); }\n\n  if (score <= 0) continue;\n\n  results.push({\n    account_id: a.account_id,\n    account_name: a.account_name || a.account_id,\n    industry: a.industry || '',\n    country: a.country || '',\n    sub_plan: sub.plan_tier || 'unknown',\n    seats: seats,\n    mrr: parseFloat(sub.mrr_amount) || 0,\n    risk_score: Math.min(score, 100),\n    tenure_days: tenure,\n    days_since_last_login: daysSince,\n    billing: sub.billing_frequency || 'unknown',\n    risk_signals: signals,\n  });\n}\n\nresults.sort((x, y) => y.risk_score - x.risk_score);\nconst top = results.slice(0, LIMIT);\n\nreturn [{\n  json: {\n    accounts: top,\n    count: top.length,\n    total_scored: totalScored,\n    generated_at: new Date().toISOString(),\n    model_version: 'rule-based-v1-embedded',\n    usage_signal_used: usageAvailable,\n  }\n}];\n"
+      },
+      "id": "4bc24ca7-f481-4ee8-afff-a8be0e43a88c",
+      "name": "Score Accounts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        112
+      ],
+      "notes": "Parses the CSVs and scores every active account with the rule-based model. Replaces the old external Python API. Change TODAY to new Date() for live data."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond-count-gt-zero",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "12350fd3-9692-4c7a-a96b-59aa2790fb21",
+      "name": "Any Accounts Flagged?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        112
+      ],
+      "notes": "True → build and post the digest. False → post an all-clear message."
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst accounts = response.accounts;\nconst generatedAt = response.generated_at;\nconst totalScored = response.total_scored;\n\nconst today = new Date().toLocaleDateString('en-GB', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\n\nconst accountLines = accounts.map((a, i) => {\n  const signals = a.risk_signals.join('; ');\n  return [\n    `${i + 1}. ${a.account_name} (${a.industry}, ${a.sub_plan} plan, $${a.mrr}/mo, ${a.seats} seats)`,\n    `   Risk score: ${a.risk_score}/100`,\n    `   Signals: ${signals || 'no specific signals'}`\n  ].join('\\n');\n}).join('\\n\\n');\n\nconst prompt = `You are a customer success assistant for Ravenstack, a B2B SaaS platform.\n\nBelow are this week's top ${accounts.length} at-risk accounts scored by our churn prediction model. For each account, write a single plain-English sentence (maximum 20 words) that a customer success manager can act on immediately. Be specific — name the signal and what it implies for the customer relationship.\n\nAccounts:\n${accountLines}\n\nRules:\n- One sentence per account, numbered to match the list above\n- No preamble, no headers, no commentary after the list\n- Write for a non-technical reader who knows the customer`;\n\nconst llmPayload = {\n  model: 'claude-sonnet-4-6',\n  max_tokens: 1000,\n  messages: [{ role: 'user', content: prompt }]\n};\n\nreturn [{ json: { accounts, generatedAt, totalScored, today, llmPayload } }];\n"
+      },
+      "id": "126c596c-d4a2-46e8-b79d-230a20d74d30",
+      "name": "Build LLM Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "notes": "Formats the top 20 accounts into a prompt for Claude."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.llmPayload }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "7c023952-add0-4810-9ec5-828551f47260",
+      "name": "Generate Alert Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "VmmhfvFDPFuf6p7y",
+          "name": "Anthropic account"
+        }
+      },
+      "notes": "Calls the Anthropic Messages API. Paste your key into the x-api-key header value (replace YOUR_ANTHROPIC_API_KEY)."
+    },
+    {
+      "parameters": {
+        "jsCode": "const promptData = $('Build LLM Prompt').first().json;\nconst accounts    = promptData.accounts;\nconst totalScored = promptData.totalScored;\nconst today       = promptData.today;\n\nconst llmResponse = $input.first().json;\nconst contentBlocks = llmResponse.content || [];\nconst rawText = (contentBlocks.find(c => c.type === 'text') || {}).text || '';\n\nconst alertLines = rawText\n  .split('\\n')\n  .map(l => l.trim())\n  .filter(l => /^\\d+\\./.test(l))\n  .map(l => l.replace(/^\\d+\\.\\s*/, ''));\n\nconst blocks = [\n  { type: 'header', text: { type: 'plain_text', text: 'Weekly Churn Risk Digest', emoji: true } },\n  { type: 'context', elements: [{ type: 'mrkdwn',\n      text: `*${today}*  |  ${accounts.length} accounts flagged from ${totalScored} active  |  Model: rule-based v1` }] },\n  { type: 'divider' }\n];\n\n// One section block per account keeps us well under Slack's 50-block limit.\naccounts.forEach((acct, i) => {\n  const alert = alertLines[i] || acct.risk_signals.join('; ') || 'Review account history.';\n  const dot = acct.risk_score >= 65 ? ':red_circle:' : acct.risk_score >= 40 ? ':large_yellow_circle:' : ':large_green_circle:';\n  const line =\n    `${dot}  *${acct.account_name}*  —  *${acct.risk_score}/100*\\n` +\n    `${acct.sub_plan} · ${acct.seats} seats · $${acct.mrr}/mo · ${acct.country}\\n` +\n    `_${alert}_`;\n  blocks.push({ type: 'section', text: { type: 'mrkdwn', text: line } });\n});\n\nblocks.push({ type: 'divider' });\nblocks.push({ type: 'context', elements: [{ type: 'mrkdwn',\n  text: 'React: :white_check_mark: reached out   :next_track_button: skip this week   :speech_balloon: note in thread   |  Next digest: Monday 08:00' }] });\n\n// Slack hard-caps at 50 blocks. Trim defensively if a future change pushes us over.\nconst safeBlocks = blocks.slice(0, 50);\n\nreturn [{ json: { blocks: safeBlocks } }];\n"
+      },
+      "id": "075f397c-b6f9-4769-a79a-37ef378b41f7",
+      "name": "Build Slack Blocks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "notes": "Parses Claude's response and builds Slack Block Kit blocks."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "b058f94f-a556-4740-a61f-cdd70f7580e8",
+      "name": "Post Digest to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "notes": "Posts to a Slack Incoming Webhook. Paste your webhook URL into the URL field (replace YOUR_SLACK_WEBHOOK_URL)."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"text\": \":white_check_mark: *Churn Risk Digest* — no accounts cleared the risk threshold this week. All active accounts are below the alert level. See you next Monday.\" }",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "3c561262-4dc1-4791-b90b-30883d1af9fb",
+      "name": "Post All-Clear to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        208
+      ],
+      "notes": "Sent when no accounts are flagged. Paste the same webhook URL here too."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Monday 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Fetch Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Accounts": {
+      "main": [
+        [
+          {
+            "node": "Fetch Subscriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Subscriptions": {
+      "main": [
+        [
+          {
+            "node": "Fetch Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Usage": {
+      "main": [
+        [
+          {
+            "node": "Score Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Accounts": {
+      "main": [
+        [
+          {
+            "node": "Any Accounts Flagged?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Accounts Flagged?": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post All-Clear to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Alert Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Alert Text": {
+      "main": [
+        [
+          {
+            "node": "Build Slack Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Slack Blocks": {
+      "main": [
+        [
+          {
+            "node": "Post Digest to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "dYMYxR3ZcdZ5tqbs",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "6551a4d6-66aa-4240-ace2-5c81b9503a1f",
+  "meta": {
+    "instanceId": "3fe6f632fcf3ad83b5ab385a5cbe78dea3fad6fe24ef699e1756ca16117fac0a"
+  },
+  "id": "f0CipCF1510TeFeN",
+  "tags": []
+}
