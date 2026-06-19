@@ -214,7 +214,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "url": "YOUR_SLACK_WEBHOOK_URL",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ $json }}",
@@ -235,7 +235,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "url": "YOUR_SLACK_WEBHOOK_URL",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{ \"text\": \":white_check_mark: *Churn Risk Digest* — no accounts cleared the risk threshold this week. All active accounts are below the alert level. See you next Monday.\" }",
