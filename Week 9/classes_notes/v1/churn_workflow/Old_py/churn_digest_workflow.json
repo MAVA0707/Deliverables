@@ -1,0 +1,287 @@
+{
+  "name": "Ravenstack — Weekly Churn Risk Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-01",
+      "name": "Every Monday 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 340],
+      "notes": "Fires at 08:00 UTC every Monday. Adjust the cron expression to match your team's timezone — e.g. '0 7 * * 1' for BST."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SCORING_API_URL }}/api/churn/top-accounts",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-fetch-01",
+      "name": "Fetch At-Risk Accounts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 340],
+      "notes": "Calls the Python scoring API. Set SCORING_API_URL in your n8n environment variables, e.g. http://localhost:5678"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-count-gt-zero",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-01",
+      "name": "Any Accounts Flagged?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 340],
+      "notes": "True branch → generate and post digest. False branch → post 'all clear' message."
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Pull the API response from the previous node\nconst response = $input.first().json;\nconst accounts = response.accounts;\nconst generatedAt = response.generated_at;\nconst totalScored = response.total_scored;\n\nconst today = new Date().toLocaleDateString('en-GB', {\n  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n});\n\n// Format account list for the LLM\nconst accountLines = accounts.map((a, i) => {\n  const signals = a.risk_signals.join('; ');\n  return [\n    `${i + 1}. ${a.account_name} (${a.industry}, ${a.sub_plan} plan, $${a.mrr}/mo, ${a.seats} seats)`,\n    `   Risk score: ${a.risk_score}/100`,\n    `   Signals: ${signals || 'no specific signals'}`\n  ].join('\\n');\n}).join('\\n\\n');\n\nconst prompt = `You are a customer success assistant for Ravenstack, a B2B SaaS platform.\n\nBelow are this week's top ${accounts.length} at-risk accounts scored by our churn prediction model. For each account, write a single plain-English sentence (maximum 20 words) that a customer success manager can act on immediately. Be specific — name the signal and what it implies for the customer relationship.\n\nAccounts:\n${accountLines}\n\nRules:\n- One sentence per account, numbered to match the list above\n- No preamble, no headers, no commentary after the list\n- Write for a non-technical reader who knows the customer`;\n\nconst llmPayload = {\n  model: 'claude-sonnet-4-20250514',\n  max_tokens: 1000,\n  messages: [{ role: 'user', content: prompt }]\n};\n\nreturn [{\n  json: {\n    accounts,\n    generatedAt,\n    totalScored,\n    today,\n    llmPayload\n  }\n}];"
+      },
+      "id": "node-code-prompt",
+      "name": "Build LLM Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 260],
+      "notes": "Formats the account list into a prompt for Claude. Change the model name in llmPayload if you prefer a different Anthropic model."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify($json.llmPayload) }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-anthropic-01",
+      "name": "Generate Alert Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 260],
+      "notes": "Calls Anthropic Messages API. Set ANTHROPIC_API_KEY in n8n environment variables. If you prefer OpenAI, replace URL and payload format."
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Access account data from the prompt-building step\nconst promptData = $('Build LLM Prompt').first().json;\nconst accounts   = promptData.accounts;\nconst totalScored = promptData.totalScored;\nconst today       = promptData.today;\n\n// Parse the LLM response from the current node input\nconst llmResponse = $input.first().json;\nconst contentBlocks = llmResponse.content || [];\nconst rawText = contentBlocks.find(c => c.type === 'text')?.text || '';\n\n// Extract numbered lines from the LLM output\nconst alertLines = rawText\n  .split('\\n')\n  .map(l => l.trim())\n  .filter(l => /^\\d+\\./.test(l))\n  .map(l => l.replace(/^\\d+\\.\\s*/, ''));\n\n// Build Slack Block Kit payload\nconst blocks = [\n  {\n    type: 'header',\n    text: { type: 'plain_text', text: '🔴 Weekly Churn Risk Digest', emoji: true }\n  },\n  {\n    type: 'context',\n    elements: [{\n      type: 'mrkdwn',\n      text: `*${today}*  ·  ${accounts.length} accounts flagged from ${totalScored} active  ·  Model: rule-based v1`\n    }]\n  },\n  { type: 'divider' }\n];\n\naccounts.forEach((acct, i) => {\n  // Fall back to the raw signals if the LLM didn't produce a line for this account\n  const alert = alertLines[i] || acct.risk_signals.join('; ') || 'Review account history.';\n  \n  // Visual risk bar\n  const filled = Math.min(Math.round(acct.risk_score / 10), 10);\n  const bar    = '▓'.repeat(filled) + '░'.repeat(10 - filled);\n  const dot    = acct.risk_score >= 65 ? '🔴' : acct.risk_score >= 40 ? '🟡' : '🟢';\n\n  // Main account row\n  blocks.push({\n    type: 'section',\n    fields: [\n      {\n        type: 'mrkdwn',\n        text: `*${acct.account_name}*\\n${acct.sub_plan} · ${acct.seats} seats · $${acct.mrr}/mo · ${acct.country}`\n      },\n      {\n        type: 'mrkdwn',\n        text: `${dot} *Score: ${acct.risk_score}/100*\\n\\`${bar}\\``\n      }\n    ]\n  });\n\n  // Alert sentence from LLM\n  blocks.push({\n    type: 'context',\n    elements: [{ type: 'mrkdwn', text: `_${alert}_` }]\n  });\n\n  if (i < accounts.length - 1) blocks.push({ type: 'divider' });\n});\n\n// Footer instructions for the CS team\nblocks.push({ type: 'divider' });\nblocks.push({\n  type: 'context',\n  elements: [{\n    type: 'mrkdwn',\n    text: '✅ = reached out   ⏭️ = skip this week   💬 = leave note in thread   | Next digest: Monday 08:00'\n  }]\n});\n\nreturn [{ json: { blocks } }];"
+      },
+      "id": "node-code-slack",
+      "name": "Build Slack Blocks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 260],
+      "notes": "Parses the LLM output and formats it into Slack Block Kit. Adjust the emoji thresholds (65/40) or bar characters to match your team's preferences."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ blocks: $json.blocks }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-slack-digest",
+      "name": "Post Digest to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 260],
+      "notes": "Posts to a Slack Incoming Webhook. Set SLACK_WEBHOOK_URL in n8n environment variables. Create a webhook at api.slack.com/messaging/webhooks."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ text: '✅ *Churn Risk Digest — ' + new Date().toDateString() + '*\\n\\nNo accounts cleared the risk threshold this week. All 390 active accounts are below the alert level. See you next Monday.' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "node-slack-allclear",
+      "name": "Post All-Clear to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 460],
+      "notes": "Sent on the 'no accounts' branch so the CS team gets confirmation the workflow ran, even on quiet weeks."
+    }
+  ],
+  "connections": {
+    "Every Monday 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Fetch At-Risk Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch At-Risk Accounts": {
+      "main": [
+        [
+          {
+            "node": "Any Accounts Flagged?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Accounts Flagged?": {
+      "main": [
+        [
+          {
+            "node": "Build LLM Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post All-Clear to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LLM Prompt": {
+      "main": [
+        [
+          {
+            "node": "Generate Alert Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Alert Text": {
+      "main": [
+        [
+          {
+            "node": "Build Slack Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Slack Blocks": {
+      "main": [
+        [
+          {
+            "node": "Post Digest to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "id": "ravenstack-churn-digest-v1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ravenstack"
+  }
+}
